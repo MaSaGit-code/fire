@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIRE Calculator — Financial Independence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0d0f0e; --surface:#141716; --surface2:#1c201e; --border:#272c29;
+    --ember:#f4631e; --ember-dim:#c44d13; --ember-glow:rgba(244,99,30,0.15);
+    --gold:#e8c96d; --green:#5dbd8a; --blue:#6eb5e8; --purple:#a87de8; --teal:#5dcfbd;
+    --red:#e86b6b; --text:#e8ede9; --muted:#6b7570; --subtle:#3a413d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse at center,rgba(244,99,30,0.07) 0%,transparent 70%);pointer-events:none;z-index:0;}
+  .container{max-width:1200px;margin:0 auto;padding:0 24px 80px;position:relative;z-index:1;}
+  header{padding:44px 0 30px;display:flex;flex-direction:column;gap:6px;}
+  .logo-row{display:flex;align-items:center;gap:14px;}
+  .flame-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--ember);border-radius:10px;font-size:20px;box-shadow:0 0 24px rgba(244,99,30,0.4);animation:pulse-glow 3s ease-in-out infinite;}
+  @keyframes pulse-glow{0%,100%{box-shadow:0 0 20px rgba(244,99,30,0.35);}50%{box-shadow:0 0 36px rgba(244,99,30,0.6);}}
+  h1{font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,2.8rem);letter-spacing:-0.5px;}
+  h1 span{color:var(--ember);font-style:italic;}
+  .subtitle{font-size:.9rem;color:var(--muted);margin-left:52px;}
+  .layout{display:grid;grid-template-columns:420px 1fr;gap:22px;align-items:start;}
+  @media(max-width:860px){.layout{grid-template-columns:1fr;}.subtitle{margin-left:0;}}
+
+  /* Panel */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+  .panel-header{padding:15px 20px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .panel-header h2{font-family:'DM Serif Display',serif;font-size:1rem;font-weight:400;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 8px var(--ember);flex-shrink:0;}
+
+  /* Tabs */
+  .tab-bar{display:flex;border-bottom:1px solid var(--border);}
+  .tab-btn{flex:1;padding:9px 0;background:transparent;border:none;font-family:'DM Mono',monospace;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;}
+  .tab-btn.active{color:var(--ember);border-bottom-color:var(--ember);}
+  .tab-pane{display:none;padding:16px 18px;flex-direction:column;gap:0;}
+  .tab-pane.active{display:flex;}
+
+  /* Form */
+  .section-label{font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ember);margin:15px 0 7px;}
+  .section-label:first-child{margin-top:0;}
+  .divider{border:none;border-top:1px solid var(--border);margin:6px 0;}
+  .field{margin-bottom:11px;}
+  label{display:block;font-size:.79rem;color:var(--muted);margin-bottom:4px;}
+  .input-wrap{position:relative;display:flex;align-items:center;}
+  .currency{position:absolute;left:10px;font-size:.81rem;color:var(--subtle);pointer-events:none;font-family:'DM Mono',monospace;}
+  .unit{position:absolute;right:10px;font-size:.71rem;color:var(--subtle);pointer-events:none;font-family:'DM Mono',monospace;}
+  input[type=number]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:.87rem;padding:8px 36px 8px 26px;outline:none;-moz-appearance:textfield;transition:border-color .2s,box-shadow .2s;}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+  input[type=number]:focus{border-color:var(--ember);box-shadow:0 0 0 3px var(--ember-glow);}
+  .slider-row{display:flex;align-items:center;gap:8px;}
+  .slider-val{font-family:'DM Mono',monospace;font-size:.84rem;color:var(--gold);min-width:46px;text-align:right;flex-shrink:0;}
+  input[type=range]{-webkit-appearance:none;height:4px;border-radius:4px;background:var(--surface2);border:none;cursor:pointer;flex:1;padding:0;width:100%;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--ember);box-shadow:0 0 6px rgba(244,99,30,.5);cursor:pointer;transition:transform .15s;}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--ember);border:none;cursor:pointer;}
+  .toggle-row{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .toggle-btn{flex:1;padding:7px 0;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:.74rem;cursor:pointer;transition:background .2s,color .2s;}
+  .toggle-btn.active{background:var(--ember);color:white;}
+  .hint{font-size:.73rem;color:var(--muted);line-height:1.5;margin-bottom:9px;}
+
+  /* Asset returns */
+  .asset-returns-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;}
+  .asset-return-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;}
+  .asset-return-label{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--muted);margin-bottom:5px;}
+  .asset-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+  /* Alloc table */
+  .alloc-table{width:100%;border-collapse:collapse;margin-bottom:7px;}
+  .alloc-table th{font-family:'DM Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:0 4px 5px;text-align:center;}
+  .alloc-table th:first-child{text-align:left;}
+  .alloc-table td{padding:3px 4px;vertical-align:middle;}
+  .alloc-table td:first-child{font-size:.77rem;color:var(--text);white-space:nowrap;width:90px;}
+  .alloc-total-row td{font-family:'DM Mono',monospace;font-size:.74rem;padding-top:7px;border-top:1px solid var(--border);}
+  .alloc-val{font-family:'DM Mono',monospace;font-size:.77rem;min-width:32px;text-align:right;flex-shrink:0;}
+  .alloc-warn{font-size:.71rem;color:var(--red);margin-top:3px;display:none;}
+  .arrow-col{color:var(--muted);font-size:.79rem;text-align:center;width:18px;}
+
+  /* Glide preview */
+  .glide-preview{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-top:9px;}
+  .glide-title{font-family:'DM Mono',monospace;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:9px;}
+  .glide-bars{display:flex;flex-direction:column;gap:4px;}
+  .glide-row{display:flex;align-items:center;gap:7px;}
+  .glide-label{width:42px;font-family:'DM Mono',monospace;text-align:right;flex-shrink:0;font-size:.67rem;color:var(--muted);}
+  .glide-bar-track{flex:1;height:12px;border-radius:3px;overflow:hidden;display:flex;}
+  .glide-seg{height:100%;transition:width .4s ease;}
+
+  /* Sequence of returns */
+  .bad-decade-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .bad-decade-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .bad-decade-label{font-size:.76rem;color:var(--text);}
+  .bad-decade-enable{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .bad-decade-enable input[type=checkbox]{accent-color:var(--ember);width:14px;height:14px;cursor:pointer;}
+  .bad-decade-enable span{font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;}
+  .bad-decade-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .bad-decade-fields.disabled{opacity:.35;pointer-events:none;}
+  .severity-band{display:flex;gap:5px;margin-top:7px;}
+  .sev-pill{flex:1;padding:5px 0;text-align:center;border-radius:6px;font-family:'DM Mono',monospace;font-size:.65rem;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .2s;}
+  .sev-pill.active-mild{background:rgba(232,201,109,.15);border-color:var(--gold);color:var(--gold);}
+  .sev-pill.active-bad{background:rgba(244,99,30,.15);border-color:var(--ember);color:var(--ember);}
+  .sev-pill.active-severe{background:rgba(232,107,107,.15);border-color:var(--red);color:var(--red);}
+
+  /* Results */
+  .results-col{display:flex;flex-direction:column;gap:16px;}
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 17px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;}
+  .kpi-card:hover{transform:translateY(-2px);border-color:var(--subtle);}
+  .kpi-card.featured{border-color:var(--ember);background:linear-gradient(135deg,#1c201e 0%,#1f1612 100%);}
+  .kpi-card.featured::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,rgba(244,99,30,.15),transparent 70%);}
+  .kpi-label{font-size:.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace;margin-bottom:5px;}
+  .kpi-value{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--text);line-height:1;}
+  .kpi-card.featured .kpi-value{color:var(--ember);}
+  .kpi-sub{font-size:.67rem;color:var(--muted);margin-top:4px;}
+  .progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 17px;}
+  .progress-meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .progress-title{font-size:.74rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;}
+  .progress-pct{font-family:'DM Serif Display',serif;font-size:1.25rem;color:var(--green);}
+  .track{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;}
+  .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ember-dim),var(--ember),var(--gold));transition:width .8s cubic-bezier(.16,1,.3,1);box-shadow:0 0 10px rgba(244,99,30,.4);min-width:2px;}
+  .milestone{padding:13px 17px;border-radius:12px;font-size:.82rem;line-height:1.55;}
+  .milestone.on-track{background:rgba(93,189,138,.08);border:1px solid rgba(93,189,138,.25);color:var(--green);}
+  .milestone.behind{background:rgba(244,99,30,.08);border:1px solid rgba(244,99,30,.25);color:var(--ember);}
+  .chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:17px;}
+  .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px;flex-wrap:wrap;gap:7px;}
+  .chart-title{font-family:'DM Serif Display',serif;font-size:.93rem;}
+  .chart-subtitle{font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:.67rem;color:var(--muted);font-family:'DM Mono',monospace;}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .legend-line{width:16px;height:2px;flex-shrink:0;}
+  canvas{display:block;width:100%!important;}
+  .tax-badges{display:flex;flex-direction:column;gap:6px;margin-top:5px;}
+  .tax-badge{display:flex;align-items:center;gap:6px;background:rgba(168,125,232,.08);border:1px solid rgba(168,125,232,.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:.71rem;color:var(--purple);}
+  .fee-badge{background:rgba(110,181,232,.08)!important;border-color:rgba(110,181,232,.2)!important;color:var(--blue)!important;}
+  .scenarios{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:15px 17px;}
+  .scenarios h3{font-family:'DM Serif Display',serif;font-size:.93rem;font-weight:400;margin-bottom:11px;}
+  .scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+  .scenario-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;text-align:center;}
+  .scenario-name{font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+  .scenario-fire{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--text);}
+  .scenario-years{font-size:.67rem;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace;}
+
+  /* Drawdown zone bands */
+  .drawdown-info{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .dz-pill{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 9px;}
+  .dz-dot{width:8px;height:8px;border-radius:50%;}
+
+  input:focus-visible{outline:none;}
+  ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--subtle);border-radius:3px;}
+  select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:.85rem;padding:7px 10px;outline:none;cursor:pointer;width:100%;}
+  select:focus{border-color:var(--ember);}
+
+  /* Savings rate display */
+  .savings-rate-bar{margin-top:8px;}
+  .sr-track{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;margin-top:4px;}
+  .sr-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--teal));transition:width .6s cubic-bezier(.16,1,.3,1);}
+  .sr-meta{display:flex;justify-content:space-between;align-items:baseline;}
+  .sr-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+  .sr-value{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--teal);}
+  .sr-bench{font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+  .kpi-card.sr-card{border-color:rgba(93,207,189,0.3);background:linear-gradient(135deg,#1c201e 0%,#121d1c 100%);}
+  .kpi-card.sr-card .kpi-value{color:var(--teal);}
+
+  /* Contribution derived display */
+  .contrib-derived-box{background:var(--surface2);border:1px solid rgba(93,189,138,.25);border-radius:8px;padding:8px 12px;display:flex;align-items:baseline;gap:10px;}
+  .contrib-derived-val{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--green);}
+  .contrib-derived-eq{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);}
+
+  /* Salary tab */
+  .salary-preview{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:0;margin-bottom:10px;overflow:hidden;}
+  .salary-tbl{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:.72rem;}
+  .salary-tbl th{font-size:.59rem;text-transform:uppercase;letter-spacing:.08em;color:var(--subtle);padding:7px 10px;text-align:right;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);}
+  .salary-tbl th:first-child{text-align:left;}
+  .salary-tbl td{padding:6px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+  .salary-tbl td:first-child{text-align:left;color:var(--muted);}
+  .salary-tbl tr:last-child td{border-bottom:none;}
+  .salary-tbl .col-gross{color:var(--muted);}
+  .salary-tbl .col-net{color:var(--green);}
+  .salary-tbl .col-contrib{color:var(--ember);font-weight:500;}
+  .salary-badges{display:flex;flex-direction:column;gap:6px;}
+  .salary-badge{display:flex;align-items:center;gap:6px;background:rgba(93,189,138,.07);border:1px solid rgba(93,189,138,.2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:.71rem;color:var(--green);}
+
+  /* FIRE Formula Box */
+  .fire-formula-box{background:var(--surface2);border:1px solid rgba(244,99,30,0.25);border-radius:10px;padding:11px 14px;margin:6px 0;}
+  .fire-formula-row{display:flex;align-items:center;justify-content:center;gap:6px;}
+  .fire-formula-item{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;}
+  .fire-formula-item.fire-formula-result{border-left:1px solid var(--border);padding-left:10px;margin-left:4px;}
+  .fire-formula-label{font-family:'DM Mono',monospace;font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);white-space:nowrap;}
+  .fire-formula-value{font-family:'DM Serif Display',serif;font-size:.98rem;color:var(--text);transition:color .3s;}
+  .fire-formula-result .fire-formula-value{color:var(--ember);font-size:1.1rem;}
+  .fire-formula-op{font-size:1.1rem;color:var(--subtle);flex-shrink:0;padding:0 1px;font-weight:300;margin-top:10px;}
+  .fire-formula-note{font-size:.66rem;color:var(--muted);margin-top:7px;text-align:center;line-height:1.4;border-top:1px solid var(--border);padding-top:7px;}
+  @keyframes flash-value{0%{color:var(--gold);}100%{color:var(--ember);}}
+  .fire-formula-result .fire-formula-value.flash{animation:flash-value .4s ease-out;}
+
+  /* Monte Carlo */
+  .mc-prob-display{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+  .mc-prob-pill{flex:1;min-width:80px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;text-align:center;}
+  .mc-prob-label{font-family:'DM Mono',monospace;font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;}
+  .mc-prob-value{font-family:'DM Serif Display',serif;font-size:1.25rem;}
+  .mc-prob-value.good{color:var(--green);}
+  .mc-prob-value.warn{color:var(--gold);}
+  .mc-prob-value.bad{color:var(--red);}
+  .mc-running{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);text-align:center;padding:8px;display:none;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mc-spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--ember);border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-row">
+      <div class="flame-icon">🔥</div>
+      <h1>F.I.R.E. <span>Calculator</span></h1>
+    </div>
+    <p class="subtitle">Financial Independence, Retire Early — model your path to freedom</p>
+  </header>
+
+  <div class="layout">
+    <!-- ════ LEFT PANEL ════ -->
+    <div class="panel">
+      <div class="panel-header"><div class="dot"></div><h2>Your Parameters</h2></div>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('basics')">Basics</button>
+        <button class="tab-btn" onclick="switchTab('salary')">Salary</button>
+        <button class="tab-btn" onclick="switchTab('allocation')">Allocation</button>
+        <button class="tab-btn" onclick="switchTab('tax')">Tax &amp; Fees</button>
+        <button class="tab-btn" onclick="switchTab('risk')">Risk</button>
+      </div>
+
+      <!-- ── BASICS ── -->
+      <div class="tab-pane active" id="tab-basics">
+        <div class="section-label">Personal</div>
+        <div class="field"><label>Current Age</label><div class="input-wrap"><input type="number" id="currentAge" value="30" min="18" max="80"><span class="unit">yrs</span></div></div>
+        <div class="field"><label>Target Retirement Age</label><div class="input-wrap"><input type="number" id="retireAge" value="50" min="25" max="80"><span class="unit">yrs</span></div></div>
+        <div class="field"><label>Life Expectancy (for drawdown)</label><div class="input-wrap"><input type="number" id="lifeExpect" value="90" min="60" max="110"><span class="unit">yrs</span></div></div>
+        <hr class="divider">
+        <div class="section-label">Finances Today</div>
+        <div class="field"><label>Current Portfolio / Savings</label><div class="input-wrap"><span class="currency">€</span><input type="number" id="currentSavings" value="50000" min="0"></div></div>
+        <div class="field" id="contrib-manual-field">
+          <label>Monthly Contribution <span style="font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace">(manual — or set salary tab)</span></label>
+          <div class="input-wrap"><span class="currency">€</span><input type="number" id="monthlyContrib" value="1500" min="0"></div>
+        </div>
+        <div class="field" id="contrib-derived-field" style="display:none">
+          <label>Monthly Contribution <span style="font-size:.65rem;color:var(--green);font-family:'DM Mono',monospace">← linked to Salary tab</span></label>
+          <div class="contrib-derived-box">
+            <span class="contrib-derived-val" id="contrib-derived-val">€3,500</span>
+            <span class="contrib-derived-eq" id="contrib-derived-eq">net salary − expenses</span>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="section-label">Retirement Target</div>
+
+        <!-- Mode toggle: fix spend vs fix FIRE number -->
+        <div class="field">
+          <label>Input Mode</label>
+          <div class="toggle-row">
+            <button class="toggle-btn active" id="mode-spend-btn" onclick="setInputMode('spend')">Fix Spending</button>
+            <button class="toggle-btn" id="mode-fire-btn" onclick="setInputMode('fire')">Fix FIRE Number</button>
+          </div>
+        </div>
+
+        <!-- Spending input (visible in "Fix Spending" mode) -->
+        <div class="field" id="spend-field">
+          <label>Annual Spending in Retirement (today's €)</label>
+          <div class="input-wrap"><span class="currency">€</span><input type="number" id="annualSpend" value="40000" min="1000"></div>
+        </div>
+
+        <!-- FIRE number input (visible in "Fix FIRE Number" mode) -->
+        <div class="field" id="firenumber-field" style="display:none">
+          <label>Target FIRE Number (today's €)</label>
+          <div class="input-wrap"><span class="currency">€</span><input type="number" id="fireNumberInput" value="1000000" min="1000"></div>
+        </div>
+
+        <!-- SWR slider -->
+        <div class="field">
+          <label>Safe Withdrawal Rate (SWR)</label>
+          <div class="slider-row"><input type="range" id="swr" min="2" max="6" step="0.1" value="4"><span class="slider-val" id="swr-val">4.0%</span></div>
+        </div>
+
+        <!-- Live formula display -->
+        <div class="fire-formula-box" id="fire-formula-box">
+          <div class="fire-formula-row">
+            <div class="fire-formula-item">
+              <div class="fire-formula-label">Annual Spend</div>
+              <div class="fire-formula-value" id="ff-spend">€40,000</div>
+            </div>
+            <div class="fire-formula-op">÷</div>
+            <div class="fire-formula-item">
+              <div class="fire-formula-label">SWR</div>
+              <div class="fire-formula-value" id="ff-swr">4.0%</div>
+            </div>
+            <div class="fire-formula-op">=</div>
+            <div class="fire-formula-item fire-formula-result">
+              <div class="fire-formula-label">FIRE Number</div>
+              <div class="fire-formula-value" id="ff-fire">€1,000,000</div>
+            </div>
+          </div>
+          <div class="fire-formula-note" id="ff-note">Adjust SWR or spending above — FIRE number updates live.</div>
+        </div>
+
+        <div class="field" style="margin-top:10px">
+          <label>FIRE Strategy</label>
+          <div class="toggle-row">
+            <button class="toggle-btn active" data-mode="classic" onclick="setMode('classic')">Classic</button>
+            <button class="toggle-btn" data-mode="lean" onclick="setMode('lean')">Lean</button>
+            <button class="toggle-btn" data-mode="fat" onclick="setMode('fat')">Fat</button>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="section-label">Macro</div>
+        <div class="field">
+          <label>Expected Inflation p.a.</label>
+          <div class="slider-row"><input type="range" id="inflation" min="0" max="6" step="0.25" value="2.5"><span class="slider-val" id="inflation-val">2.5%</span></div>
+        </div>
+      </div>
+
+      <!-- ── SALARY ── -->
+      <div class="tab-pane" id="tab-salary">
+        <div class="section-label">Current Income</div>
+        <p class="hint">Enter your gross salary and income tax rate so the model can compute your net take-home. Monthly savings = net salary − monthly expenses.</p>
+        <div class="field"><label>Current Gross Annual Salary</label><div class="input-wrap"><span class="currency">€</span><input type="number" id="grossSalary" value="60000" min="0"></div></div>
+        <div class="field">
+          <label>Marginal Income Tax Rate</label>
+          <div class="slider-row"><input type="range" id="incomeTax" min="0" max="60" step="0.5" value="30"><span class="slider-val" id="incomeTax-val">30.0%</span></div>
+        </div>
+        <div class="field"><label>Monthly Fixed Expenses (rent, food, bills…)</label><div class="input-wrap"><span class="currency">€</span><input type="number" id="monthlyExpenses" value="2000" min="0"></div></div>
+
+        <hr class="divider">
+        <div class="section-label">Salary Growth — Phase 1 (Career Growth)</div>
+        <p class="hint">Your active growth years — promotions, skill progression, job changes. Enter a <em>real</em> annual growth rate (above inflation).</p>
+        <div class="field">
+          <label>Real Salary Growth Rate</label>
+          <div class="slider-row"><input type="range" id="salGrowth1" min="0" max="15" step="0.25" value="3"><span class="slider-val" id="salGrowth1-val">3.00%</span></div>
+        </div>
+        <div class="field">
+          <label>Phase 1 Ends at Age</label>
+          <div class="input-wrap"><input type="number" id="salPhase1End" value="45" min="18" max="80"><span class="unit">yrs</span></div>
+          <div id="salPhase1End-warn" style="display:none;font-size:.68rem;color:var(--gold);margin-top:3px">⚠ Phase 1 end is at or after retirement age — Phase 2 will not activate</div>
+        </div>
+
+        <hr class="divider">
+        <div class="section-label">Salary Growth — Phase 2 (Plateau)</div>
+        <p class="hint">Late career — slower growth, cost-of-living increases only. Runs from Phase 1 end to retirement.</p>
+        <div class="field">
+          <label>Real Salary Growth Rate</label>
+          <div class="slider-row"><input type="range" id="salGrowth2" min="0" max="8" step="0.25" value="1"><span class="slider-val" id="salGrowth2-val">1.00%</span></div>
+        </div>
+
+        <hr class="divider">
+        <div class="section-label">Savings Behaviour</div>
+        <p class="hint">Of each additional €1 of net salary increase, how much goes to savings vs. lifestyle? Setting this to 100% means every raise is fully invested. 0% = all salary growth consumed by spending (contributions stay flat).</p>
+        <div class="field">
+          <label>Marginal Savings Rate on Salary Increases</label>
+          <div class="slider-row"><input type="range" id="marginalSavings" min="0" max="100" step="1" value="70"><span class="slider-val" id="marginalSavings-val">70%</span></div>
+        </div>
+
+        <hr class="divider">
+        <div class="section-label">Live Salary Trajectory</div>
+        <div class="salary-preview" id="salary-preview">
+          <!-- filled by JS -->
+        </div>
+        <div class="salary-badges" id="salary-badges">
+          <div class="salary-badge" id="sb-net-now">💰 Net salary today: —</div>
+          <div class="salary-badge" id="sb-contrib-now">📥 Implied monthly contribution: —</div>
+          <div class="salary-badge" id="sb-net-retire">📈 Net salary at retirement: —</div>
+          <div class="salary-badge" id="sb-contrib-retire">📥 Contribution at retirement: —</div>
+          <div class="salary-badge" id="sb-total-contrib">🏦 Total extra savings from salary growth: —</div>
+        </div>
+      </div>
+
+      <!-- ── ALLOCATION ── -->
+      <div class="tab-pane" id="tab-allocation">
+        <div class="section-label">Expected Nominal Returns by Asset Class</div>
+        <div class="asset-returns-grid">
+          <div class="asset-return-item">
+            <div class="asset-return-label"><div class="asset-dot" style="background:#f4631e"></div>Equities</div>
+            <div class="slider-row"><input type="range" id="ret-eq" min="0" max="20" step="0.25" value="8"><span class="slider-val" id="ret-eq-val">8.0%</span></div>
+          </div>
+          <div class="asset-return-item">
+            <div class="asset-return-label"><div class="asset-dot" style="background:#6eb5e8"></div>Bonds</div>
+            <div class="slider-row"><input type="range" id="ret-bo" min="0" max="12" step="0.25" value="3"><span class="slider-val" id="ret-bo-val">3.0%</span></div>
+          </div>
+          <div class="asset-return-item">
+            <div class="asset-return-label"><div class="asset-dot" style="background:#5dcfbd"></div>Real Assets</div>
+            <div class="slider-row"><input type="range" id="ret-re" min="0" max="15" step="0.25" value="5"><span class="slider-val" id="ret-re-val">5.0%</span></div>
+          </div>
+          <div class="asset-return-item">
+            <div class="asset-return-label"><div class="asset-dot" style="background:#a87de8"></div>Alternatives</div>
+            <div class="slider-row"><input type="range" id="ret-al" min="0" max="20" step="0.25" value="6"><span class="slider-val" id="ret-al-val">6.0%</span></div>
+          </div>
+        </div>
+        <div class="section-label">Allocation Glide Path</div>
+        <p class="hint">Set your allocation <em>today</em> and at <em>retirement</em>. The model linearly shifts between them year-by-year.</p>
+        <table class="alloc-table">
+          <thead><tr><th>Asset</th><th>Today</th><th class="arrow-col"></th><th>Retire</th></tr></thead>
+          <tbody>
+            <tr><td><span style="color:#f4631e">●</span> Equities</td>
+              <td><div class="slider-row"><input type="range" id="al-eq-now" min="0" max="100" step="1" value="70"><span class="alloc-val" id="al-eq-now-v">70%</span></div></td>
+              <td class="arrow-col">→</td>
+              <td><div class="slider-row"><input type="range" id="al-eq-ret" min="0" max="100" step="1" value="40"><span class="alloc-val" id="al-eq-ret-v">40%</span></div></td>
+            </tr>
+            <tr><td><span style="color:#6eb5e8">●</span> Bonds</td>
+              <td><div class="slider-row"><input type="range" id="al-bo-now" min="0" max="100" step="1" value="15"><span class="alloc-val" id="al-bo-now-v">15%</span></div></td>
+              <td class="arrow-col">→</td>
+              <td><div class="slider-row"><input type="range" id="al-bo-ret" min="0" max="100" step="1" value="40"><span class="alloc-val" id="al-bo-ret-v">40%</span></div></td>
+            </tr>
+            <tr><td><span style="color:#5dcfbd">●</span> Real Assets</td>
+              <td><div class="slider-row"><input type="range" id="al-re-now" min="0" max="100" step="1" value="10"><span class="alloc-val" id="al-re-now-v">10%</span></div></td>
+              <td class="arrow-col">→</td>
+              <td><div class="slider-row"><input type="range" id="al-re-ret" min="0" max="100" step="1" value="15"><span class="alloc-val" id="al-re-ret-v">15%</span></div></td>
+            </tr>
+            <tr><td><span style="color:#a87de8">●</span> Alternatives</td>
+              <td><div class="slider-row"><input type="range" id="al-al-now" min="0" max="100" step="1" value="5"><span class="alloc-val" id="al-al-now-v">5%</span></div></td>
+              <td class="arrow-col">→</td>
+              <td><div class="slider-row"><input type="range" id="al-al-ret" min="0" max="100" step="1" value="5"><span class="alloc-val" id="al-al-ret-v">5%</span></div></td>
+            </tr>
+            <tr class="alloc-total-row">
+              <td>Total</td>
+              <td><span id="total-now" style="color:var(--green)">100%</span></td>
+              <td></td>
+              <td><span id="total-ret" style="color:var(--green)">100%</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alloc-warn" id="warn-now">⚠ Today's allocation must sum to 100%</div>
+        <div class="alloc-warn" id="warn-ret">⚠ Retirement allocation must sum to 100%</div>
+        <div class="glide-preview"><div class="glide-title">Glide Path Preview</div><div class="glide-bars" id="glide-bars"></div></div>
+      </div>
+
+      <!-- ── TAX & FEES ── -->
+      <div class="tab-pane" id="tab-tax">
+        <div class="section-label">Capital Gains Tax</div>
+        <p class="hint">Flat rate on realised gains above cost basis. New contributions always increase the cost basis — only growth is taxed.</p>
+        <div class="field">
+          <label>CGT Rate (flat)</label>
+          <div class="slider-row"><input type="range" id="cgt" min="0" max="50" step="0.5" value="20"><span class="slider-val" id="cgt-val">20.0%</span></div>
+        </div>
+        <div class="field"><label>Annual CGT-Free Allowance</label><div class="input-wrap"><span class="currency">€</span><input type="number" id="cgtAllowance" value="1500" min="0"></div></div>
+        <div class="field">
+          <label>% of Portfolio Realised / Sold Each Year</label>
+          <p class="hint" style="margin-top:3px">0% = buy-and-hold (deferred). 100% = distributing fund (taxed annually).</p>
+          <div class="slider-row"><input type="range" id="realisationRate" min="0" max="100" step="1" value="20"><span class="slider-val" id="realisationRate-val">20%</span></div>
+        </div>
+        <hr class="divider">
+        <div class="section-label">Investment Fees</div>
+        <p class="hint">Annual fee charged on total portfolio value (fund TER, platform fee, advisor fee). Applied before growth each year — this compounds silently and is one of the most impactful variables.</p>
+        <div class="field">
+          <label>Annual Fee / Expense Ratio</label>
+          <div class="slider-row"><input type="range" id="annualFee" min="0" max="3" step="0.05" value="0.2"><span class="slider-val" id="annualFee-val">0.20%</span></div>
+        </div>
+        <hr class="divider">
+        <div class="section-label">Impact Summary</div>
+        <div class="tax-badges">
+          <div class="tax-badge" id="tb-total-tax">💸 Total CGT to retirement: —</div>
+          <div class="tax-badge" id="tb-cgt-drag">📉 CGT drag vs. pre-tax: —</div>
+          <div class="tax-badge fee-badge" id="tb-fee-drag">💼 Fee drag over accumulation: —</div>
+          <div class="tax-badge fee-badge" id="tb-total-drag">🔢 Combined drag (CGT + fees): —</div>
+          <div class="tax-badge" id="tb-blended-now">📊 Blended return today: —</div>
+          <div class="tax-badge" id="tb-blended-ret">📊 Blended return at retirement: —</div>
+        </div>
+      </div>
+
+      <!-- ── RISK ── -->
+      <div class="tab-pane" id="tab-risk">
+        <div class="section-label">Sequence of Returns Risk</div>
+        <p class="hint">Define up to two "bad decades" — periods where returns are significantly worse than expected. A bad decade in <em>early retirement</em> is particularly dangerous: withdrawals lock in losses before recovery can occur.</p>
+
+        <!-- Bad Decade 1 -->
+        <div class="bad-decade-card">
+          <div class="bad-decade-title">
+            <span class="bad-decade-label">Bad Decade #1</span>
+            <label class="bad-decade-enable"><input type="checkbox" id="bd1-on" onchange="compute()"><span>Enable</span></label>
+          </div>
+          <div class="bad-decade-fields" id="bd1-fields">
+            <div class="field" style="margin-bottom:0">
+              <label>Start Age</label>
+              <div class="input-wrap"><input type="number" id="bd1-age" value="50" min="20" max="90"><span class="unit">yrs</span></div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Return Shock</label>
+              <div class="input-wrap"><input type="number" id="bd1-shock" value="-15" min="-40" max="0"><span class="unit">pp</span></div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Duration</label>
+              <div class="input-wrap"><input type="number" id="bd1-years" value="10" min="1" max="30"><span class="unit">yrs</span></div>
+            </div>
+          </div>
+          <div class="severity-band" id="bd1-sev">
+            <button class="sev-pill" onclick="setSeverity(1,'mild')">Mild −5pp</button>
+            <button class="sev-pill" onclick="setSeverity(1,'bad')">Bad −15pp</button>
+            <button class="sev-pill" onclick="setSeverity(1,'severe')">Severe −25pp</button>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:7px;line-height:1.4" id="bd1-desc">Applies for the duration set above from start age. The blended return is reduced by the shock value each year in this window.</div>
+        </div>
+
+        <!-- Bad Decade 2 -->
+        <div class="bad-decade-card">
+          <div class="bad-decade-title">
+            <span class="bad-decade-label">Bad Decade #2</span>
+            <label class="bad-decade-enable"><input type="checkbox" id="bd2-on" onchange="compute()"><span>Enable</span></label>
+          </div>
+          <div class="bad-decade-fields" id="bd2-fields">
+            <div class="field" style="margin-bottom:0">
+              <label>Start Age</label>
+              <div class="input-wrap"><input type="number" id="bd2-age" value="70" min="20" max="90"><span class="unit">yrs</span></div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Return Shock</label>
+              <div class="input-wrap"><input type="number" id="bd2-shock" value="-10" min="-40" max="0"><span class="unit">pp</span></div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Duration</label>
+              <div class="input-wrap"><input type="number" id="bd2-years" value="10" min="1" max="30"><span class="unit">yrs</span></div>
+            </div>
+          </div>
+          <div class="severity-band" id="bd2-sev">
+            <button class="sev-pill" onclick="setSeverity(2,'mild')">Mild −5pp</button>
+            <button class="sev-pill" onclick="setSeverity(2,'bad')">Bad −15pp</button>
+            <button class="sev-pill" onclick="setSeverity(2,'severe')">Severe −25pp</button>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:7px;line-height:1.4" id="bd2-desc">Applies for the duration set above from start age. A bad period in retirement is especially dangerous due to the withdrawal effect locking in losses.</div>
+        </div>
+
+        <div class="section-label">Historical Context</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;font-size:.72rem;color:var(--muted);line-height:1.6;">
+          <strong style="color:var(--text)">What do the shocks mean?</strong><br>
+          <span style="color:var(--gold)">Mild −5pp:</span> A sluggish decade. E.g. 2000s "lost decade" for US equities (~flat real returns).<br>
+          <span style="color:var(--ember)">Bad −15pp:</span> A severe decade. E.g. combined drawdown of 2000–02 dotcom + 2008 GFC in same window.<br>
+          <span style="color:var(--red)">Severe −25pp:</span> Near worst-case. E.g. 1929–1939 Great Depression era or hyperinflationary environment.
+        </div>
+
+        <hr class="divider" style="margin:14px 0">
+        <div class="section-label">Monte Carlo Simulation</div>
+        <p class="hint">Run hundreds of randomised return paths using your blended expected return ± a volatility assumption. Shows the probability distribution of outcomes — how likely you are to reach FIRE, and what the range of portfolio values looks like.</p>
+        <div class="field">
+          <label>Annual Return Volatility (std dev)</label>
+          <p class="hint" style="margin-top:2px">Typical: 8–10% for equity-heavy portfolios, 4–6% for balanced. Applies as random noise on top of your expected blended return each year.</p>
+          <div class="slider-row"><input type="range" id="mc-vol" min="1" max="25" step="0.5" value="10"><span class="slider-val" id="mc-vol-val">10.0%</span></div>
+        </div>
+        <div class="field">
+          <label>Number of Simulations</label>
+          <div class="slider-row"><input type="range" id="mc-runs" min="100" max="2000" step="100" value="500"><span class="slider-val" id="mc-runs-val">500</span></div>
+        </div>
+        <div class="field">
+          <label>Show fan chart</label>
+          <div class="toggle-row">
+            <button class="toggle-btn active" id="mc-show-btn" onclick="toggleMC(true)">On</button>
+            <button class="toggle-btn" id="mc-hide-btn" onclick="toggleMC(false)">Off</button>
+          </div>
+        </div>
+        <div id="mc-running" class="mc-running"><span class="mc-spinner"></span>Running simulations…</div>
+      </div>
+    </div><!-- end panel -->
+
+    <!-- ════ RIGHT RESULTS ════ -->
+    <div class="results-col">
+      <div class="kpis">
+        <div class="kpi-card featured">
+          <div class="kpi-label">FIRE Number</div>
+          <div class="kpi-value" id="kpi-fire">—</div>
+          <div class="kpi-sub" id="kpi-fire-sub">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">After-Tax &amp; Fees at Retirement</div>
+          <div class="kpi-value" id="kpi-proj">—</div>
+          <div class="kpi-sub" id="kpi-proj-sub">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Years to FIRE</div>
+          <div class="kpi-value" id="kpi-years">—</div>
+          <div class="kpi-sub" id="kpi-years-sub">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">FIRE Age</div>
+          <div class="kpi-value" id="kpi-fireage">—</div>
+          <div class="kpi-sub" id="kpi-fireage-sub">—</div>
+        </div>
+        <div class="kpi-card sr-card" style="grid-column:span 2">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+            <div>
+              <div class="kpi-label">Savings Rate</div>
+              <div class="kpi-value" id="kpi-sr">—</div>
+              <div class="kpi-sub" id="kpi-sr-sub">—</div>
+            </div>
+            <div style="text-align:right">
+              <div class="kpi-label">At Retirement</div>
+              <div class="kpi-value" style="color:var(--teal)" id="kpi-sr-retire">—</div>
+              <div class="kpi-sub" id="kpi-sr-retire-sub">—</div>
+            </div>
+          </div>
+          <div class="savings-rate-bar">
+            <div class="sr-track"><div class="sr-fill" id="sr-fill" style="width:0%"></div></div>
+            <div class="sr-bench" id="sr-bench">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span class="progress-title">Current Progress to FIRE Number</span>
+          <span class="progress-pct" id="prog-pct">0%</span>
+        </div>
+        <div class="track"><div class="fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="kpi-sub" id="prog-sub" style="margin-top:6px">—</div>
+      </div>
+
+      <div class="milestone on-track" id="milestone-msg">Computing your FIRE projection…</div>
+
+      <!-- Accumulation chart -->
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Portfolio — Accumulation Phase</div>
+            <div class="chart-subtitle">Real (inflation-adjusted) values · bad decades shown as shaded bands</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#f4631e"></div>After All Costs</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#5dbd8a;opacity:.7"></div>No Costs</div>
+            <div class="legend-item"><div class="legend-line" style="background:rgba(232,201,109,.6);border-top:2px dashed rgba(232,201,109,.6)"></div>FIRE Target</div>
+          </div>
+        </div>
+        <canvas id="chart" height="220"></canvas>
+      </div>
+
+      <!-- Monte Carlo chart -->
+      <div class="chart-wrap" id="mc-chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Monte Carlo — Outcome Distribution</div>
+            <div class="chart-subtitle" id="mc-chart-subtitle">500 simulated return paths · real terms</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-line" style="background:rgba(244,99,30,.9);height:2px"></div>Median (p50)</div>
+            <div class="legend-item"><div class="legend-line" style="background:rgba(93,189,138,.5);height:8px;border-radius:2px"></div>p25–p75</div>
+            <div class="legend-item"><div class="legend-line" style="background:rgba(110,181,232,.25);height:8px;border-radius:2px"></div>p10–p90</div>
+          </div>
+        </div>
+        <canvas id="mc-chart" height="220"></canvas>
+        <div class="mc-prob-display" id="mc-prob-display">
+          <div class="mc-prob-pill">
+            <div class="mc-prob-label">P(FIRE by target)</div>
+            <div class="mc-prob-value" id="mc-p-fire">—</div>
+          </div>
+          <div class="mc-prob-pill">
+            <div class="mc-prob-label">Median FIRE age</div>
+            <div class="mc-prob-value" id="mc-median-age">—</div>
+          </div>
+          <div class="mc-prob-pill">
+            <div class="mc-prob-label">p10 portfolio at target</div>
+            <div class="mc-prob-value" id="mc-p10-val">—</div>
+          </div>
+          <div class="mc-prob-pill">
+            <div class="mc-prob-label">p90 portfolio at target</div>
+            <div class="mc-prob-value" id="mc-p90-val">—</div>
+          </div>
+          <div class="mc-prob-pill">
+            <div class="mc-prob-label">P(ruin by life exp.)</div>
+            <div class="mc-prob-value" id="mc-p-ruin">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drawdown chart -->
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Portfolio — Retirement Drawdown Phase</div>
+            <div class="chart-subtitle">From retirement age · withdrawals vs. remaining investment growth</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#e8c96d"></div>Portfolio Value</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e86b6b;opacity:.7"></div>Ruin Zone</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f4631e;opacity:.5"></div>Bad Decade</div>
+          </div>
+        </div>
+        <canvas id="drawdown-chart" height="220"></canvas>
+        <div class="drawdown-info">
+          <div class="dz-pill"><div class="dz-dot" style="background:rgba(93,189,138,.5)"></div>Healthy (&gt;50% of start)</div>
+          <div class="dz-pill"><div class="dz-dot" style="background:rgba(232,201,109,.5)"></div>Warning (25–50%)</div>
+          <div class="dz-pill"><div class="dz-dot" style="background:rgba(232,107,107,.5)"></div>Critical (&lt;25%)</div>
+          <div class="dz-pill" id="ruin-age-pill" style="color:var(--text)">Portfolio lasts: —</div>
+        </div>
+      </div>
+
+      <!-- Alloc chart -->
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">Asset Allocation Glide Path</span>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#f4631e"></div>Equities</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#6eb5e8"></div>Bonds</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#5dcfbd"></div>Real</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#a87de8"></div>Alts</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e8c96d"></div>Blended Real</div>
+          </div>
+        </div>
+        <canvas id="alloc-chart" height="160"></canvas>
+      </div>
+
+      <!-- Salary / contribution trajectory chart -->
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Monthly Contribution Trajectory</div>
+            <div class="chart-subtitle">How rising salary increases your annual savings over time</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#5dbd8a"></div>Monthly Contribution</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#6eb5e8;opacity:.7"></div>Net Monthly Salary</div>
+          </div>
+        </div>
+        <canvas id="salary-chart" height="160"></canvas>
+      </div>
+
+      <div class="scenarios">
+        <h3>Scenario Comparison (After All Costs)</h3>
+        <div class="scenario-grid">
+          <div class="scenario-card"><div class="scenario-name">Lean FIRE</div><div class="scenario-fire" id="sc-lean-fire">—</div><div class="scenario-years" id="sc-lean-yrs">—</div></div>
+          <div class="scenario-card"><div class="scenario-name">Classic FIRE</div><div class="scenario-fire" id="sc-classic-fire">—</div><div class="scenario-years" id="sc-classic-yrs">—</div></div>
+          <div class="scenario-card"><div class="scenario-name">Fat FIRE</div><div class="scenario-fire" id="sc-fat-fire">—</div><div class="scenario-years" id="sc-fat-yrs">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const fmt = n => {
+  if (!isFinite(n)) return '—';
+  const sign = n < 0 ? '-' : '';
+  const a = Math.abs(n);
+  if (a >= 1e6) return sign + '€' + (a/1e6).toFixed(2) + 'M';
+  if (a >= 1e3) return sign + '€' + Math.round(a/1e3) + 'K';
+  return sign + '€' + Math.round(a);
+};
+const fmtFull = n => (n < 0 ? '-' : '') + '€' + Math.abs(Math.round(n)).toLocaleString('de-DE');
+
+// ══════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('onclick').includes("'"+name+"'"))
+  );
+  document.querySelectorAll('.tab-pane').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-'+name)
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  INPUT MODE: Fix Spending ↔ Fix FIRE Number
+// ══════════════════════════════════════════════════════
+let inputMode = 'spend'; // 'spend' | 'fire'
+
+function setInputMode(mode) {
+  inputMode = mode;
+  $('mode-spend-btn').classList.toggle('active', mode==='spend');
+  $('mode-fire-btn').classList.toggle('active', mode==='fire');
+  $('spend-field').style.display    = mode==='spend' ? '' : 'none';
+  $('firenumber-field').style.display = mode==='fire' ? '' : 'none';
+  const note = $('ff-note');
+  if (mode === 'spend') {
+    note.textContent = 'Move the SWR slider or change your spending — the FIRE number updates live.';
+  } else {
+    note.textContent = 'Move the SWR slider or change your FIRE number — the implied spending updates live.';
+  }
+  compute();
+}
+
+// Returns {annualSpend, fireNumber} from current inputs, respecting mode
+function getSpendAndFire() {
+  const swr = +$('swr').value || 4;
+  if (inputMode === 'spend') {
+    const annualSpend = +$('annualSpend').value || 40000;
+    return { annualSpend, fireNumber: annualSpend / (swr/100) };
+  } else {
+    const fireNumber = +$('fireNumberInput').value || 1000000;
+    return { annualSpend: fireNumber * (swr/100), fireNumber };
+  }
+}
+
+function updateFormulaBox() {
+  const { annualSpend, fireNumber } = getSpendAndFire();
+  const swr = +$('swr').value || 4;
+  $('ff-spend').textContent = '€' + Math.round(annualSpend).toLocaleString('de-DE');
+  $('ff-swr').textContent   = swr.toFixed(1) + '%';
+  const fireEl = $('ff-fire');
+  fireEl.textContent = '€' + Math.round(fireNumber).toLocaleString('de-DE');
+  // Flash animation on change
+  fireEl.classList.remove('flash');
+  void fireEl.offsetWidth; // reflow
+  fireEl.classList.add('flash');
+}
+
+// ══════════════════════════════════════════════════════
+//  FIRE MODE
+// ══════════════════════════════════════════════════════
+const MODE = { classic:{swr:4}, lean:{swr:5}, fat:{swr:3} };
+function setMode(m) {
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.mode===m));
+  $('swr').value = MODE[m].swr;
+  $('swr-val').textContent = MODE[m].swr.toFixed(1)+'%';
+  compute();
+}
+
+// ══════════════════════════════════════════════════════
+//  SEVERITY PRESETS
+// ══════════════════════════════════════════════════════
+const SEV = { mild:-5, bad:-15, severe:-25 };
+function setSeverity(n, level) {
+  $(`bd${n}-shock`).value = SEV[level];
+  document.querySelectorAll(`#bd${n}-sev .sev-pill`).forEach(p => {
+    p.className = 'sev-pill';
+    if (p.textContent.toLowerCase().startsWith(level)) p.classList.add(`active-${level}`);
+  });
+  compute();
+}
+
+// ══════════════════════════════════════════════════════
+//  ASSET ALLOCATION
+// ══════════════════════════════════════════════════════
+const ASSETS = ['eq','bo','re','al'];
+const ASSET_COLORS = ['#f4631e','#6eb5e8','#5dcfbd','#a87de8'];
+const ASSET_LABELS = ['Equities','Bonds','Real Assets','Alts'];
+
+function getAllocNorm(phase) {
+  const vals = ASSETS.map(a => +$(`al-${a}-${phase}`).value);
+  const tot = vals.reduce((s,v)=>s+v,0) || 100;
+  return vals.map(v => v/tot);
+}
+
+function syncAlloc(phase) {
+  const vals = ASSETS.map(a => +$(`al-${a}-${phase}`).value);
+  const tot = vals.reduce((s,v)=>s+v,0);
+  ASSETS.forEach((a,i) => $(`al-${a}-${phase}-v`).textContent = vals[i]+'%');
+  const el = $(`total-${phase}`);
+  el.textContent = tot+'%'; el.style.color = tot===100?'var(--green)':'var(--red)';
+  $(`warn-${phase}`).style.display = tot===100?'none':'block';
+  updateGlidePreview(); compute();
+}
+
+function allocAtYear(y, ytr) {
+  const t = Math.min(1, ytr>0 ? y/ytr : 1);
+  const now = getAllocNorm('now'), ret = getAllocNorm('ret');
+  return now.map((n,i) => n + t*(ret[i]-n));
+}
+
+function blendedNominal(y, ytr) {
+  const alloc = allocAtYear(y, ytr);
+  return ASSETS.reduce((s,a,i) => s + alloc[i]*(+$(`ret-${a}`).value/100), 0);
+}
+
+function updateGlidePreview() {
+  const ca = +$('currentAge').value||30, ra = Math.max(ca+1,+$('retireAge').value||50);
+  const ytr = ra-ca;
+  const snaps = [0,.25,.5,.75,1].map(t => ({ age:Math.round(ca+t*ytr), alloc:allocAtYear(t*ytr,ytr) }));
+  const bars = $('glide-bars'); bars.innerHTML='';
+  snaps.forEach(s => {
+    const row=document.createElement('div'); row.className='glide-row';
+    const lbl=document.createElement('span'); lbl.className='glide-label'; lbl.textContent='Age '+s.age;
+    const track=document.createElement('div'); track.className='glide-bar-track';
+    s.alloc.forEach((w,i)=>{ const seg=document.createElement('div'); seg.className='glide-seg'; seg.style.width=(w*100).toFixed(1)+'%'; seg.style.background=ASSET_COLORS[i]; track.appendChild(seg); });
+    row.appendChild(lbl); row.appendChild(track); bars.appendChild(row);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  SEQUENCE OF RETURNS — get shock for a given age
+// ══════════════════════════════════════════════════════
+function getReturnShock(age) {
+  let shock = 0;
+  for (let n = 1; n <= 2; n++) {
+    if (!$(`bd${n}-on`).checked) continue;
+    const start    = +$(`bd${n}-age`).value;
+    const duration = Math.max(1, +$(`bd${n}-years`).value || 10);
+    const s        = +$(`bd${n}-shock`).value / 100;
+    if (age >= start && age < start + duration) shock += s;
+  }
+  return shock;
+}
+
+// ══════════════════════════════════════════════════════
+//  LINKED CONTRIBUTION DISPLAY (Basics tab)
+// ══════════════════════════════════════════════════════
+function updateContribLinked(p) {
+  const { grossSalary, incomeTaxRate, monthlyExpenses } = p;
+  const usingSalaryTab = grossSalary > 0;
+  $('contrib-manual-field').style.display   = usingSalaryTab ? 'none' : '';
+  $('contrib-derived-field').style.display  = usingSalaryTab ? '' : 'none';
+
+  if (usingSalaryTab) {
+    const netMo   = grossSalary * (1 - incomeTaxRate / 100) / 12;
+    const contrib = Math.max(0, netMo - monthlyExpenses);
+    $('contrib-derived-val').textContent = fmtFull(contrib) + '/mo';
+    $('contrib-derived-eq').textContent  =
+      fmtFull(netMo) + '/mo net  −  ' + fmtFull(monthlyExpenses) + '/mo expenses';
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  SALARY GROWTH MODEL
+// ══════════════════════════════════════════════════════
+/**
+ * Returns the real net monthly salary and implied monthly contribution at a given simulation year.
+ * All values are in real (inflation-adjusted) terms since salary growth rates are entered as real rates.
+ *
+ * gross(y) = grossSalary × (1 + g1)^min(y, phase1Years) × (1 + g2)^max(0, y - phase1Years)
+ * net(y)   = gross(y) × (1 - incomeTaxRate)
+ * netIncrement(y) = net(y) - net(0)
+ * extraSavings(y) = netIncrement(y) × marginalSavingsRate
+ * monthlyContrib(y) = baseMonthlyContrib + extraSavings(y) / 12
+ */
+function getSalaryAtYear(y, p) {
+  const { grossSalary, salGrowth1, salGrowth2, salPhase1End, currentAge } = p;
+  const phase1Years = Math.max(0, salPhase1End - currentAge);
+  const g1 = salGrowth1 / 100, g2 = salGrowth2 / 100;
+  const phase1y = Math.min(y, phase1Years);
+  const phase2y = Math.max(0, y - phase1Years);
+  return grossSalary * Math.pow(1 + g1, phase1y) * Math.pow(1 + g2, phase2y);
+}
+
+function getMonthlyContrib(y, p) {
+  const { grossSalary, incomeTaxRate, monthlyExpenses, monthlyContrib, marginalSavings, ytr } = p;
+
+  // After retirement: no salary, no contributions
+  if (y > ytr) return 0;
+
+  if (grossSalary <= 0) return monthlyContrib; // fallback to manual input when salary tab not used
+
+  // Salary-tab mode: derive contribution from net salary minus fixed expenses
+  const baseNet    = grossSalary * (1 - incomeTaxRate / 100) / 12;
+  const currentNet = getSalaryAtYear(y, p) * (1 - incomeTaxRate / 100) / 12;
+  const increment  = Math.max(0, currentNet - baseNet);
+  const extraSavings = increment * (marginalSavings / 100);
+  const baseContrib  = Math.max(0, baseNet - monthlyExpenses);
+  return baseContrib + extraSavings;
+}
+
+function updateSalaryPreview(p) {
+  const { currentAge, grossSalary, incomeTaxRate, monthlyExpenses, marginalSavings } = p;
+  if (!grossSalary) return;
+  const ytr = p.ytr;
+  const snapYears = [0, Math.round(ytr*0.25), Math.round(ytr*0.5), Math.round(ytr*0.75), ytr];
+  const preview = $('salary-preview');
+  const rows = snapYears.map(y => {
+    const age = currentAge + y;
+    const gross = getSalaryAtYear(y, p);
+    const netMo = gross * (1 - incomeTaxRate/100) / 12;
+    const contrib = getMonthlyContrib(y, p);
+    const isRetired = y > ytr;
+    return `<tr>
+      <td>Age ${age}${isRetired ? ' <span style="color:var(--ember);font-size:.62rem">retire</span>' : ''}</td>
+      <td class="col-gross">${fmt(gross)}</td>
+      <td class="col-net">${isRetired ? '—' : fmt(netMo)+'/mo'}</td>
+      <td class="col-contrib">${contrib > 0 ? fmt(contrib)+'/mo' : '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  preview.innerHTML = `<table class="salary-tbl">
+    <thead><tr><th>Age</th><th>Gross/yr</th><th>Net/mo</th><th>Contrib/mo</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+
+  // Badges
+  const netNow    = getSalaryAtYear(0, p) * (1 - incomeTaxRate/100);
+  const contribNow = getMonthlyContrib(0, p);
+  const netRetire = getSalaryAtYear(ytr, p) * (1 - incomeTaxRate/100);
+  const contribRetire = getMonthlyContrib(ytr, p);
+  // Total extra savings vs. flat base
+  let totalExtra = 0;
+  for (let y = 1; y <= ytr; y++) totalExtra += (getMonthlyContrib(y,p) - contribNow) * 12;
+
+  $('sb-net-now').textContent      = `💰 Net salary today: ${fmt(netNow)}/yr  (${fmt(netNow/12)}/mo)`;
+  $('sb-contrib-now').textContent  = `📥 Monthly contribution today: ${fmt(contribNow)}/mo`;
+  $('sb-net-retire').textContent   = `📈 Net salary at retirement: ${fmt(netRetire)}/yr`;
+  $('sb-contrib-retire').textContent = `📥 Contribution at retirement: ${fmt(contribRetire)}/mo`;
+  $('sb-total-contrib').textContent  = `🏦 Extra savings from salary growth: ${fmt(Math.max(0,totalExtra))}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  SALARY CHART
+// ══════════════════════════════════════════════════════
+let chartSalary = null;
+
+function drawSalaryChart(ages, contributions, netSalaries) {
+  const ctx = $('salary-chart').getContext('2d');
+  if (chartSalary) chartSalary.destroy();
+  const datasets = [
+    { label: 'Monthly Contribution', data: contributions, borderColor: '#5dbd8a',
+      backgroundColor: c => { const g=c.chart.ctx.createLinearGradient(0,0,0,180); g.addColorStop(0,'rgba(93,189,138,0.18)'); g.addColorStop(1,'rgba(93,189,138,0)'); return g; },
+      borderWidth: 2.2, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4 }
+  ];
+  if (netSalaries) {
+    datasets.push({ label: 'Net Monthly Salary', data: netSalaries, borderColor: 'rgba(110,181,232,0.6)',
+      borderWidth: 1.5, borderDash: [4,3], fill: false, tension: 0.4, pointRadius: 0 });
+  }
+  chartSalary = new Chart(ctx, {
+    type: 'line',
+    data: { labels: ages, datasets },
+    options: {
+      responsive: true, interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor:'#1c201e', borderColor:'#272c29', borderWidth:1,
+          titleColor:'#6b7570', bodyColor:'#e8ede9',
+          titleFont:{family:'DM Mono',size:11}, bodyFont:{family:'DM Mono',size:11},
+          callbacks: { title: i=>'Age '+i[0].label, label: i=>i.dataset.label+': '+fmtFull(i.raw)+'/mo' }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},maxTicksLimit:10} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},
+          callback: v => v>=1e3?Math.round(v/1e3)+'K':v } }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  CORE SIMULATION (accumulation, year-by-year, real terms)
+// ══════════════════════════════════════════════════════
+function simulate(p) {
+  const { currentAge, ytr, currentSavings, inflation, cgtRate, cgtAllowance, realisationRate, annualFee, maxYears } = p;
+  const infR = inflation/100, feeR = annualFee/100;
+  let portfolio = currentSavings, costBasis = currentSavings, cumTax = 0, cumFee = 0;
+  const out = [{year:0, age:currentAge, portfolio, costBasis, taxPaid:0, feePaid:0, realRetPct:0, alloc:allocAtYear(0,ytr), shock:0,
+    monthlyContrib: getMonthlyContrib(0, p) }];
+
+  for (let y=1; y<=maxYears; y++) {
+    const age = currentAge + y;
+    const nomR   = blendedNominal(y, ytr);
+    const shock  = getReturnShock(age - 1);
+    const adjNom = nomR + shock;
+    const realR  = (1+adjNom)/(1+infR) - 1;
+
+    // Dynamic contribution this year (salary growth model)
+    const monthlyContrib = getMonthlyContrib(y, p);
+    const annualContrib  = monthlyContrib * 12;
+
+    // 1. Fee deducted first
+    const fee = portfolio * feeR;
+    cumFee += fee;
+    const portfolioAfterFee = portfolio - fee;
+
+    // 2. Grow
+    const portfolioGrown = portfolioAfterFee * (1 + realR);
+
+    // 3. CGT on realised gain
+    const gainAboveBasis = Math.max(0, portfolioGrown - costBasis);
+    const realisedGain   = gainAboveBasis * (realisationRate/100);
+    const taxableGain    = Math.max(0, realisedGain - cgtAllowance);
+    const tax            = taxableGain * (cgtRate/100);
+    cumTax += tax;
+    const portfolioAfterTax = portfolioGrown - tax;
+
+    // 4. Contributions
+    portfolio = portfolioAfterTax + annualContrib;
+
+    // 5. Update cost basis
+    const basisFrac = costBasis>0 && gainAboveBasis>0 ? Math.min((realisedGain/gainAboveBasis)*(realisationRate/100),1) : 0;
+    costBasis = costBasis*(1-basisFrac) + annualContrib;
+
+    out.push({ year:y, age, portfolio, costBasis, taxPaid:cumTax, feePaid:cumFee, realRetPct:realR*100,
+      alloc:allocAtYear(y,ytr), shock:shock*100, monthlyContrib });
+  }
+  return out;
+}
+
+// No-cost baseline (same returns INCLUDING shocks, same contributions — but no CGT or fees)
+// This isolates drag correctly: the only difference vs simulate() is taxes + fees.
+function simulateClean(p) {
+  const { currentAge, ytr, currentSavings, inflation, maxYears } = p;
+  const infR = inflation/100;
+  let portfolio = currentSavings;
+  const out = [portfolio];
+  for (let y=1; y<=maxYears; y++) {
+    const age = currentAge + y;
+    const nomR  = blendedNominal(y, ytr);
+    const shock = getReturnShock(age - 1);  // BUG FIX: apply same shocks as main sim
+    const realR = (1+(nomR+shock))/(1+infR)-1;
+    const annualContrib = getMonthlyContrib(y, p) * 12;
+    portfolio = portfolio*(1+realR) + annualContrib;
+    out.push(portfolio);
+  }
+  return out;
+}
+
+// ══════════════════════════════════════════════════════
+//  DRAWDOWN SIMULATION
+//  Starts from retirement portfolio, runs through life expectancy
+//  Applies: retirement-phase blended return, fees, CGT on withdrawals-triggered sales, bad decade shocks
+// ══════════════════════════════════════════════════════
+function simulateDrawdown(p) {
+  const { retireAge, lifeExpect, startPortfolio, costBasisAtRetire, annualSpend, inflation, cgtRate, cgtAllowance, realisationRate, annualFee, ytr } = p;
+  const infR = inflation/100, feeR = annualFee/100;
+  // BUG FIX: use actual tracked cost basis from accumulation instead of hardcoded 50%
+  let portfolio = startPortfolio, costBasis = costBasisAtRetire ?? startPortfolio * 0.5;
+  const years = lifeExpect - retireAge;
+  const out = [{age:retireAge, portfolio, withdrawal:0, growth:0, shock:0}];
+
+  for (let y=1; y<=years; y++) {
+    const age = retireAge + y;
+    const nomR  = blendedNominal(ytr + y, ytr); // use retirement-phase allocation
+    const shock = getReturnShock(age-1);
+    const adjNom = nomR + shock;
+    const realR  = (1+adjNom)/(1+infR)-1;
+
+    if (portfolio <= 0) { out.push({age, portfolio:0, withdrawal:0, growth:0, shock:shock*100}); continue; }
+
+    // Fee
+    const fee = portfolio * feeR;
+    const portfolioAfterFee = portfolio - fee;
+
+    // Growth
+    const portfolioGrown = portfolioAfterFee * (1+realR);
+
+    // Withdrawal (annual spend in real terms, already inflation-adjusted since everything is real)
+    const withdrawal = Math.min(annualSpend, portfolioGrown);
+
+    // CGT on withdrawal (treated as realisation event)
+    const gainFrac = costBasis > 0 ? Math.max(0, (portfolioGrown - costBasis)/portfolioGrown) : 0;
+    const gainInWithdrawal = withdrawal * gainFrac;
+    const taxableW = Math.max(0, gainInWithdrawal - cgtAllowance);
+    const tax = taxableW * (cgtRate/100);
+
+    portfolio = Math.max(0, portfolioGrown - withdrawal - tax);
+    // Shrink cost basis proportionally
+    costBasis = Math.max(0, costBasis * (portfolio / Math.max(portfolioGrown, 1)));
+
+    out.push({ age, portfolio, withdrawal, growth: portfolioGrown - portfolioAfterFee, shock:shock*100 });
+  }
+  return out;
+}
+
+// ══════════════════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════════════════
+let chartMain=null, chartDrawdown=null, chartAlloc=null;
+
+function drawMainChart(ages, afterCosts, clean, fireTarget, badBands) {
+  const ctx=$('chart').getContext('2d');
+  if(chartMain) chartMain.destroy();
+
+  // Build bad-decade annotation background data
+  const bgColors = ages.map(age => {
+    let isBad = false;
+    for(let n=1;n<=2;n++){
+      if(!$(`bd${n}-on`).checked) continue;
+      const s=+$(`bd${n}-age`).value;
+      const dur=Math.max(1,+$(`bd${n}-years`).value||10);
+      if(age>=s && age<s+dur) isBad=true;
+    }
+    return isBad ? 'rgba(244,99,30,0.07)' : 'rgba(0,0,0,0)';
+  });
+
+  chartMain = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels:ages,
+      datasets:[
+        { label:'After All Costs', data:afterCosts, borderColor:'#f4631e',
+          backgroundColor: c=>{ const g=c.chart.ctx.createLinearGradient(0,0,0,250); g.addColorStop(0,'rgba(244,99,30,0.18)'); g.addColorStop(1,'rgba(244,99,30,0)'); return g; },
+          borderWidth:2.5, fill:true, tension:0.4, pointRadius:0, pointHoverRadius:4 },
+        { label:'No Costs', data:clean, borderColor:'rgba(93,189,138,0.5)', borderWidth:1.5, borderDash:[4,3], fill:false, tension:0.4, pointRadius:0 },
+        { label:'FIRE Target', data:ages.map(()=>fireTarget), borderColor:'rgba(232,201,109,0.55)', borderWidth:1.5, borderDash:[6,4], fill:false, tension:0, pointRadius:0 }
+      ]
+    },
+    options:{
+      responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1c201e', borderColor:'#272c29', borderWidth:1,
+          titleColor:'#6b7570', bodyColor:'#e8ede9',
+          titleFont:{family:'DM Mono',size:11}, bodyFont:{family:'DM Mono',size:11},
+          callbacks:{ title:i=>'Age '+i[0].label, label:i=>i.dataset.label+': '+fmtFull(i.raw) }
+        }
+      },
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},maxTicksLimit:10} },
+        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'K':v} }
+      }
+    },
+    plugins:[{
+      id:'badBands',
+      beforeDraw(chart){
+        const { ctx:c, scales:{x,y} } = chart;
+        ages.forEach((age,i)=>{
+          if(!bgColors[i] || bgColors[i]==='rgba(0,0,0,0)') return;
+          const x0=x.getPixelForValue(ages[i]??age), x1=x.getPixelForValue(ages[Math.min(i+1,ages.length-1)]??age);
+          c.save(); c.fillStyle='rgba(244,99,30,0.07)';
+          c.fillRect(x0, y.top, x1-x0, y.bottom-y.top); c.restore();
+        });
+      }
+    }]
+  });
+}
+
+function drawDrawdownChart(ddSim, startPortfolio) {
+  const ctx=$('drawdown-chart').getContext('2d');
+  if(chartDrawdown) chartDrawdown.destroy();
+  const ages = ddSim.map(s=>s.age);
+  const vals  = ddSim.map(s=>s.portfolio);
+
+  // Colour each segment by health zone
+  const bgColors = vals.map(v => {
+    const pct = v / startPortfolio;
+    if(pct > 0.5) return 'rgba(93,189,138,0.12)';
+    if(pct > 0.25) return 'rgba(232,201,109,0.12)';
+    return 'rgba(232,107,107,0.12)';
+  });
+
+  // Ruin age
+  const ruinPoint = ddSim.find(s=>s.portfolio<=0);
+  const ruinPill = $('ruin-age-pill');
+  if(ruinPoint){
+    ruinPill.textContent = `⚠ Portfolio depleted at age ${ruinPoint.age}`;
+    ruinPill.style.color = 'var(--red)';
+  } else {
+    ruinPill.textContent = `✓ Portfolio survives to age ${ages[ages.length-1]}`;
+    ruinPill.style.color = 'var(--green)';
+  }
+
+  chartDrawdown = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels:ages,
+      datasets:[
+        { label:'Portfolio Value', data:vals, borderColor:'#e8c96d',
+          backgroundColor: c=>{ const g=c.chart.ctx.createLinearGradient(0,0,0,240); g.addColorStop(0,'rgba(232,201,109,0.2)'); g.addColorStop(1,'rgba(232,201,109,0)'); return g; },
+          borderWidth:2.5, fill:true, tension:0.35, pointRadius:0, pointHoverRadius:4 },
+        { label:'Ruin Line', data:ages.map(()=>0), borderColor:'rgba(232,107,107,0.4)', borderWidth:1, borderDash:[3,4], fill:false, tension:0, pointRadius:0 }
+      ]
+    },
+    options:{
+      responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1c201e', borderColor:'#272c29', borderWidth:1,
+          titleColor:'#6b7570', bodyColor:'#e8ede9',
+          titleFont:{family:'DM Mono',size:11}, bodyFont:{family:'DM Mono',size:11},
+          callbacks:{
+            title:i=>'Age '+i[0].label,
+            label:i=>{
+              const s=ddSim[i[0].dataIndex];
+              if(i[0].datasetIndex===1) return null;
+              return [`Portfolio: ${fmtFull(s.portfolio)}`, `Withdrawal: ${fmtFull(s.withdrawal)}`, `Growth: ${fmtFull(s.growth)}`, s.shock?`Shock: ${s.shock.toFixed(1)}pp`:''];
+            },
+            afterBody:()=>[]
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},maxTicksLimit:10} },
+        y:{ min:0, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'K':v} }
+      }
+    },
+    plugins:[{
+      id:'drawdownBands',
+      beforeDraw(chart){
+        const {ctx:c, scales:{x,y}} = chart;
+        const healthy=y.getPixelForValue(startPortfolio*0.5), warn=y.getPixelForValue(startPortfolio*0.25), bot=y.bottom, top=y.top;
+        c.save();
+        c.fillStyle='rgba(93,189,138,0.06)'; c.fillRect(x.left,top,x.right-x.left,healthy-top);
+        c.fillStyle='rgba(232,201,109,0.07)'; c.fillRect(x.left,healthy,x.right-x.left,warn-healthy);
+        c.fillStyle='rgba(232,107,107,0.1)'; c.fillRect(x.left,warn,x.right-x.left,bot-warn);
+        c.restore();
+        // Bad decade bands
+        ages.forEach((age,i)=>{
+          let isBad=false;
+          for(let n=1;n<=2;n++){
+            if(!$(`bd${n}-on`).checked) continue;
+            const s=+$(`bd${n}-age`).value;
+            const dur=Math.max(1,+$(`bd${n}-years`).value||10);
+            if(age>=s&&age<s+dur) isBad=true;
+          }
+          if(!isBad) return;
+          const x0=x.getPixelForValue(age), x1=x.getPixelForValue(ages[Math.min(i+1,ages.length-1)]);
+          c.save(); c.fillStyle='rgba(244,99,30,0.10)'; c.fillRect(x0,y.top,x1-x0,y.bottom-y.top); c.restore();
+        });
+      }
+    }]
+  });
+}
+
+function drawAllocChart(ages, series) {
+  const ctx=$('alloc-chart').getContext('2d');
+  if(chartAlloc) chartAlloc.destroy();
+  chartAlloc = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:ages,
+      datasets:[
+        ...ASSETS.map((a,i)=>({
+          label:ASSET_LABELS[i], data:series.map(s=>+(s.alloc[i]*100).toFixed(1)),
+          borderColor:ASSET_COLORS[i], backgroundColor:'transparent',
+          borderWidth:1.8, tension:0.3, pointRadius:0, fill:false, yAxisID:'yAlloc'
+        })),
+        { label:'Blended Real Ret.', data:series.map(s=>+s.realRetPct.toFixed(2)),
+          borderColor:'#e8c96d', backgroundColor:'transparent',
+          borderWidth:1.5, borderDash:[4,3], tension:0.3, pointRadius:0, fill:false, yAxisID:'yReturn' }
+      ]
+    },
+    options:{
+      responsive:true, interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1c201e', borderColor:'#272c29', borderWidth:1,
+          titleColor:'#6b7570', bodyColor:'#e8ede9',
+          titleFont:{family:'DM Mono',size:11}, bodyFont:{family:'DM Mono',size:11},
+          callbacks:{ title:i=>'Age '+i[0].label, label:i=>i.dataset.label+': '+i.raw+'%' }
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},maxTicksLimit:10}},
+        yAlloc:{position:'left',min:0,max:100,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b7570',font:{family:'DM Mono',size:10},callback:v=>v+'%'}},
+        yReturn:{position:'right',grid:{display:false},ticks:{color:'rgba(232,201,109,0.6)',font:{family:'DM Mono',size:10},callback:v=>v.toFixed(1)+'%'}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  SAVINGS RATE
+// ══════════════════════════════════════════════════════
+function computeSavingsRate(p) {
+  const { grossSalary, incomeTaxRate, monthlyExpenses, monthlyContrib } = p;
+  if (grossSalary > 0) {
+    const netMo = grossSalary * (1 - incomeTaxRate / 100) / 12;
+    const contrib = Math.max(0, netMo - monthlyExpenses);
+    const sr = netMo > 0 ? (contrib / netMo) * 100 : 0;
+    return { sr, netMo, contrib };
+  } else {
+    // Manual mode — we don't know gross income, so show contribution only
+    return { sr: null, netMo: null, contrib: monthlyContrib };
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  MONTE CARLO ENGINE
+// ══════════════════════════════════════════════════════
+let mcEnabled = true;
+function toggleMC(on) {
+  mcEnabled = on;
+  $('mc-show-btn').classList.toggle('active', on);
+  $('mc-hide-btn').classList.toggle('active', !on);
+  $('mc-chart-wrap').style.display = on ? '' : 'none';
+  if (on) compute();
+}
+
+// Box-Muller transform — produces standard normal random variable
+function randn() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+// Run one Monte Carlo path. Returns array of portfolio values (real terms, year-by-year).
+// annualVol is fractional (e.g. 0.10 for 10% std dev applied to real return each year).
+function runOnePath(p, annualVol, fireNumber, lifeExpect) {
+  const { currentAge, ytr, currentSavings, inflation, cgtRate, cgtAllowance,
+          realisationRate, annualFee, retireAge } = p;
+  const infR = inflation/100, feeR = annualFee/100;
+  const totalYears = lifeExpect - currentAge;
+  let portfolio = currentSavings, costBasis = currentSavings;
+  let cumTax = 0;
+  let fireAge = null;
+  const vals = [portfolio];
+
+  for (let y = 1; y <= totalYears; y++) {
+    const age = currentAge + y;
+    const isRetired = age > retireAge;
+
+    // Expected return for this year (deterministic blended nominal)
+    const nomR  = blendedNominal(Math.min(y, ytr), ytr);
+    const shock = getReturnShock(age - 1);
+    // Add random noise: N(expected, vol)
+    const noisyNom = nomR + shock + annualVol * randn();
+    const realR = (1 + noisyNom) / (1 + infR) - 1;
+
+    if (isRetired) {
+      // Drawdown phase
+      if (portfolio <= 0) { vals.push(0); continue; }
+      const fee = portfolio * feeR;
+      const grown = (portfolio - fee) * (1 + realR);
+      const withdrawal = Math.min(p.annualSpend, grown);
+      const gainFrac = costBasis > 0 ? Math.max(0, (grown - costBasis) / grown) : 0;
+      const tax = Math.max(0, withdrawal * gainFrac - cgtAllowance) * (cgtRate / 100);
+      portfolio = Math.max(0, grown - withdrawal - tax);
+      costBasis = Math.max(0, costBasis * (portfolio / Math.max(grown, 1)));
+    } else {
+      // Accumulation phase
+      const contrib = getMonthlyContrib(y, p);
+      const fee = portfolio * feeR;
+      const grown = (portfolio - fee) * (1 + realR);
+      const gain = Math.max(0, grown - costBasis);
+      const realised = gain * (realisationRate / 100);
+      const tax = Math.max(0, realised - cgtAllowance) * (cgtRate / 100);
+      const annual = contrib * 12;
+      const basisFrac = costBasis > 0 && gain > 0
+        ? Math.min((realised / gain) * (realisationRate / 100), 1) : 0;
+      portfolio = grown - tax + annual;
+      costBasis = costBasis * (1 - basisFrac) + annual;
+      if (fireAge === null && portfolio >= fireNumber) fireAge = age;
+    }
+    vals.push(portfolio);
+  }
+  return { vals, fireAge };
+}
+
+// Percentile helper — sorts in place and returns value at given percentile
+function percentile(arr, p) {
+  const sorted = arr.slice().sort((a, b) => a - b);
+  const idx = Math.floor((p / 100) * (sorted.length - 1));
+  return sorted[idx];
+}
+
+let chartMC = null;
+
+function runMonteCarlo(p, fireNumber, lifeExpect) {
+  if (!mcEnabled) return;
+  const nRuns = Math.round(+$('mc-runs').value || 500);
+  const vol   = (+$('mc-vol').value || 10) / 100;
+  const totalYears = lifeExpect - p.currentAge;
+  const retireIdx  = p.retireAge - p.currentAge; // index of retirement in the path
+
+  // Collect all paths
+  const allVals   = Array.from({length: totalYears + 1}, () => []);
+  const fireAges  = [];
+  let ruinCount   = 0;
+
+  for (let r = 0; r < nRuns; r++) {
+    const { vals, fireAge } = runOnePath(p, vol, fireNumber, lifeExpect);
+    vals.forEach((v, i) => allVals[i].push(v));
+    if (fireAge !== null) fireAges.push(fireAge);
+    // Ruin = portfolio hits 0 before life expectancy
+    if (vals[vals.length - 1] <= 0) ruinCount++;
+  }
+
+  // Build percentile bands
+  const ages  = Array.from({length: totalYears + 1}, (_, i) => p.currentAge + i);
+  const p10   = allVals.map(v => percentile(v, 10));
+  const p25   = allVals.map(v => percentile(v, 25));
+  const p50   = allVals.map(v => percentile(v, 50));
+  const p75   = allVals.map(v => percentile(v, 75));
+  const p90   = allVals.map(v => percentile(v, 90));
+
+  // Probability stats
+  const pFireByTarget = (allVals[retireIdx].filter(v => v >= fireNumber).length / nRuns * 100).toFixed(0);
+  const medianFireAge = fireAges.length > 0 ? Math.round(percentile(fireAges, 50)) : null;
+  const p10AtTarget   = percentile(allVals[retireIdx], 10);
+  const p90AtTarget   = percentile(allVals[retireIdx], 90);
+  const pRuin         = (ruinCount / nRuns * 100).toFixed(0);
+
+  // Update probability pills
+  const pFire = +pFireByTarget;
+  const pFireEl = $('mc-p-fire');
+  pFireEl.textContent = pFire + '%';
+  pFireEl.className   = 'mc-prob-value ' + (pFire >= 75 ? 'good' : pFire >= 50 ? 'warn' : 'bad');
+
+  $('mc-median-age').textContent = medianFireAge ? medianFireAge : '—';
+  $('mc-median-age').className   = 'mc-prob-value ' + (medianFireAge && medianFireAge <= p.retireAge ? 'good' : 'warn');
+
+  $('mc-p10-val').textContent = fmt(p10AtTarget);
+  $('mc-p10-val').className   = 'mc-prob-value ' + (p10AtTarget >= fireNumber ? 'good' : 'warn');
+
+  $('mc-p90-val').textContent = fmt(p90AtTarget);
+  $('mc-p90-val').className   = 'mc-prob-value good';
+
+  const pRuinNum = +pRuin;
+  const pRuinEl  = $('mc-p-ruin');
+  pRuinEl.textContent = pRuin + '%';
+  pRuinEl.className   = 'mc-prob-value ' + (pRuinNum <= 5 ? 'good' : pRuinNum <= 20 ? 'warn' : 'bad');
+
+  $('mc-chart-subtitle').textContent = `${nRuns} simulated paths · ${(vol*100).toFixed(1)}% annual volatility · real terms`;
+
+  // Draw chart
+  const ctx = $('mc-chart').getContext('2d');
+  if (chartMC) chartMC.destroy();
+
+  // Build band datasets using fill between lines
+  chartMC = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ages,
+      datasets: [
+        // p10 — bottom of outer band (fill to p90)
+        { label: 'p10', data: p10, borderColor: 'transparent', backgroundColor: 'rgba(110,181,232,0.12)',
+          fill: '+4', tension: 0.3, pointRadius: 0, borderWidth: 0 },
+        // p25 — bottom of inner band (fill to p75)
+        { label: 'p25', data: p25, borderColor: 'transparent', backgroundColor: 'rgba(93,189,138,0.18)',
+          fill: '+2', tension: 0.3, pointRadius: 0, borderWidth: 0 },
+        // p50 — median line
+        { label: 'Median', data: p50, borderColor: '#f4631e',
+          backgroundColor: 'transparent', fill: false,
+          borderWidth: 2.5, tension: 0.3, pointRadius: 0, pointHoverRadius: 4 },
+        // p75 — top of inner band
+        { label: 'p75', data: p75, borderColor: 'transparent', backgroundColor: 'transparent',
+          fill: false, tension: 0.3, pointRadius: 0, borderWidth: 0 },
+        // p90 — top of outer band
+        { label: 'p90', data: p90, borderColor: 'rgba(110,181,232,0.3)',
+          backgroundColor: 'transparent', fill: false,
+          borderWidth: 1, borderDash: [3, 3], tension: 0.3, pointRadius: 0 },
+        // FIRE target line
+        { label: 'FIRE Target', data: ages.map(() => fireNumber),
+          borderColor: 'rgba(232,201,109,0.6)', borderWidth: 1.5, borderDash: [6, 4],
+          fill: false, tension: 0, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c201e', borderColor: '#272c29', borderWidth: 1,
+          titleColor: '#6b7570', bodyColor: '#e8ede9',
+          titleFont: { family: 'DM Mono', size: 11 },
+          bodyFont:  { family: 'DM Mono', size: 11 },
+          filter: item => item.dataset.label !== 'p10' && item.dataset.label !== 'p25'
+                       && item.dataset.label !== 'p75',
+          callbacks: {
+            title: i => 'Age ' + i[0].label,
+            label: i => {
+              const labels = { 'Median': 'Median', 'p90': 'p90', 'FIRE Target': 'Target' };
+              const l = labels[i.dataset.label];
+              if (!l) return null;
+              return l + ': ' + fmtFull(i.raw);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' },
+             ticks: { color: '#6b7570', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 10 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' },
+             ticks: { color: '#6b7570', font: { family: 'DM Mono', size: 10 },
+               callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? Math.round(v/1e3)+'K' : v } }
+      }
+    },
+    plugins: [{
+      id: 'retireLine',
+      beforeDraw(chart) {
+        const { ctx: c, scales: { x, y } } = chart;
+        const px = x.getPixelForValue(p.retireAge);
+        if (!px) return;
+        c.save();
+        c.strokeStyle = 'rgba(244,99,30,0.35)';
+        c.lineWidth = 1;
+        c.setLineDash([4, 4]);
+        c.beginPath(); c.moveTo(px, y.top); c.lineTo(px, y.bottom); c.stroke();
+        c.fillStyle = 'rgba(244,99,30,0.6)';
+        c.font = '10px DM Mono, monospace';
+        c.fillText('Retire', px + 4, y.top + 14);
+        c.restore();
+      }
+    }]
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  MAIN COMPUTE
+// ══════════════════════════════════════════════════════
+function compute() {
+  const currentAge      = +$('currentAge').value||30;
+  const retireAge       = Math.max(currentAge+1, +$('retireAge').value||50);
+  const lifeExpect      = Math.max(retireAge+1, +$('lifeExpect').value||90);
+  const currentSavings  = +$('currentSavings').value||0;
+  const monthlyContrib  = +$('monthlyContrib').value||0;  // fallback when salary tab unused
+  const swr             = +$('swr').value||4;
+  const inflation       = +$('inflation').value||2.5;
+  const { annualSpend, fireNumber: _fireNumber } = getSpendAndFire();
+  updateFormulaBox();
+  const cgtRate         = +$('cgt').value||0;
+  const cgtAllowance    = +$('cgtAllowance').value||0;
+  const realisationRate = +$('realisationRate').value||0;
+  const annualFee       = +$('annualFee').value||0;
+
+  // Salary inputs
+  const grossSalary     = +$('grossSalary').value||0;
+  const incomeTaxRate   = +$('incomeTax').value||0;
+  const monthlyExpenses = +$('monthlyExpenses').value||0;
+  const salGrowth1      = +$('salGrowth1').value||0;
+  const salGrowth2      = +$('salGrowth2').value||0;
+  const salPhase1End    = +$('salPhase1End').value||45;
+  const marginalSavings = +$('marginalSavings').value||100;
+
+  const ytr       = retireAge - currentAge;
+  const fireNumber= _fireNumber;
+  const maxYears  = 65;
+
+  const params = {
+    currentAge, retireAge, ytr, currentSavings, monthlyContrib, inflation,
+    cgtRate, cgtAllowance, realisationRate, annualFee, maxYears,
+    // salary
+    grossSalary, incomeTaxRate, monthlyExpenses,
+    salGrowth1, salGrowth2, salPhase1End, marginalSavings
+  };
+
+  // Update contribution display in Basics tab and salary preview panel
+  updateContribLinked(params);
+  if (grossSalary > 0) updateSalaryPreview(params);
+
+  const sim   = simulate(params);
+  const clean = simulateClean(params);
+
+  // FIRE age
+  let fireAge = null;
+  for(const s of sim) { if(s.portfolio >= fireNumber){ fireAge=s.age; break; } }
+  const yrsToFire = fireAge ? fireAge - currentAge : null;
+
+  const atRetire     = sim[Math.min(ytr, sim.length-1)];
+  const projRetire   = atRetire.portfolio;
+  const taxAtRetire  = atRetire.taxPaid;
+  const feeAtRetire  = atRetire.feePaid;
+  const cleanRetire  = clean[Math.min(ytr, clean.length-1)];
+
+  // Blended returns
+  const blendNow = blendedNominal(0, ytr)*100;
+  const blendRet = blendedNominal(ytr, ytr)*100;
+  const realNow  = ((1+blendNow/100)/(1+inflation/100)-1)*100;
+  const realRet  = ((1+blendRet/100)/(1+inflation/100)-1)*100;
+
+  // ── KPIs ──
+  $('kpi-fire').textContent     = fmt(fireNumber);
+  $('kpi-fire-sub').textContent = `SWR ${swr}% · spend ${fmt(annualSpend)}/yr`;
+  $('kpi-proj').textContent     = fmt(projRetire);
+  const contribAtRetire = getMonthlyContrib(ytr, params);
+  const contribNow      = getMonthlyContrib(0, params);
+  const contribGrowthNote = grossSalary > 0 && contribAtRetire > contribNow + 1
+    ? `contrib grows ${fmt(contribNow)} → ${fmt(contribAtRetire)}/mo`
+    : `monthly contrib: ${fmt(contribNow)}/mo`;
+  $('kpi-proj-sub').textContent = `Age ${retireAge} · ${contribGrowthNote}`;
+
+  // ── Savings Rate KPI ──
+  const srNow = computeSavingsRate(params);
+  const srRetire = grossSalary > 0 ? computeSavingsRate({...params, grossSalary: getSalaryAtYear(ytr, params), ytr: 0}) : null;
+
+  if (srNow.sr !== null) {
+    const srPct = srNow.sr.toFixed(1);
+    $('kpi-sr').textContent = srPct + '%';
+    $('kpi-sr-sub').textContent = `${fmt(srNow.contrib)}/mo saved of ${fmt(srNow.netMo)}/mo net`;
+    const srFill = Math.min(srNow.sr, 100);
+    $('sr-fill').style.width = srFill + '%';
+    // Colour the fill based on benchmarks
+    const srNum = srNow.sr;
+    $('sr-fill').style.background = srNum >= 50 ? 'linear-gradient(90deg,#5dbd8a,#5dcfbd)'
+                                  : srNum >= 25 ? 'linear-gradient(90deg,#6eb5e8,#5dcfbd)'
+                                  : 'linear-gradient(90deg,#f4631e,#e8c96d)';
+    $('sr-bench').textContent = srNum >= 50 ? `✦ FIRE-grade savings rate (50%+ is exceptional)`
+                              : srNum >= 25 ? `↑ Strong rate — FIRE community target is 50%+`
+                              : `↓ Low rate — increasing to 25%+ accelerates FIRE significantly`;
+  } else {
+    // Manual mode — show contribution only, no percentage
+    $('kpi-sr').textContent = fmt(contribNow) + '/mo';
+    $('kpi-sr-sub').textContent = 'Set salary in Salary tab to see savings rate %';
+    $('sr-fill').style.width = '0%';
+    $('sr-bench').textContent = 'Enter gross salary in the Salary tab to calculate savings rate';
+  }
+  if (srRetire && srRetire.sr !== null) {
+    $('kpi-sr-retire').textContent = srRetire.sr.toFixed(1) + '%';
+    $('kpi-sr-retire-sub').textContent = `${fmt(srRetire.contrib)}/mo at retirement age`;
+  } else {
+    $('kpi-sr-retire').textContent = '—';
+    $('kpi-sr-retire-sub').textContent = 'Salary tab required';
+  }
+
+  // ── Phase1End warning ──
+  const p1Warn = $('salPhase1End-warn');
+  if (p1Warn) p1Warn.style.display = salPhase1End >= retireAge ? '' : 'none';
+
+  if(fireAge && fireAge <= currentAge+maxYears){
+    $('kpi-years').textContent     = yrsToFire+'y';
+    $('kpi-years-sub').textContent = 'At current savings rate';
+    $('kpi-fireage').textContent     = fireAge;
+    $('kpi-fireage-sub').textContent = fireAge<=retireAge ? '✓ Before target' : '↑ After target';
+  } else {
+    $('kpi-years').textContent     = '>65y';
+    $('kpi-years-sub').textContent = 'Increase contributions';
+    $('kpi-fireage').textContent     = '—';
+    $('kpi-fireage-sub').textContent = 'Boost savings rate';
+  }
+
+  // ── Progress ──
+  const prog = Math.min((currentSavings/fireNumber)*100, 100);
+  $('prog-pct').textContent  = prog.toFixed(1)+'%';
+  $('prog-fill').style.width = prog+'%';
+  $('prog-sub').textContent  = (fireNumber-currentSavings) > 0
+    ? `${fmtFull(fireNumber-currentSavings)} still needed to reach your FIRE number`
+    : `You've already surpassed your FIRE number! 🎉`;
+
+  // ── Milestone ──
+  const msg = $('milestone-msg'); msg.className='milestone';
+  const cgtDrag = cleanRetire>0 ? ((cleanRetire-projRetire)/cleanRetire*100).toFixed(1) : 0;
+  const feeDragPct = cleanRetire>0 ? (feeAtRetire/cleanRetire*100).toFixed(1) : 0;
+  const activeBadDecades = [1,2].filter(n=>$(`bd${n}-on`).checked);
+
+  const salaryNote = grossSalary > 0
+    ? ` Salary grows ${fmt(grossSalary)} → ${fmt(getSalaryAtYear(ytr, params))}/yr gross (${Math.round(marginalSavings)}% of raises saved).`
+    : '';
+
+  if(projRetire >= fireNumber){
+    msg.classList.add('on-track');
+    msg.textContent = `✓ On track — ${fmt(projRetire)} after all costs by age ${retireAge} exceeds FIRE target of ${fmt(fireNumber)}. CGT: ${fmt(taxAtRetire)} · fees: ${fmt(feeAtRetire)} · combined drag: ${cgtDrag}%`
+      + (activeBadDecades.length ? ` · ${activeBadDecades.length} bad decade(s) factored in.` : '.')
+      + salaryNote;
+  } else if(fireAge && fireAge<=currentAge+maxYears){
+    msg.classList.add('behind');
+    msg.textContent = `⚠ Shortfall of ${fmt(fireNumber-projRetire)} at age ${retireAge}. True FIRE age: ${fireAge}. CGT drag: ${cgtDrag}% (${fmt(taxAtRetire)}) + fee drag: ${feeDragPct}% (${fmt(feeAtRetire)}).`
+      + (activeBadDecades.length ? ` Bad decade shock(s) are delaying FIRE.` : '')
+      + salaryNote;
+  } else {
+    msg.classList.add('behind');
+    msg.textContent = `⚠ FIRE is not achievable within 65 years at current settings. Review contributions, fees (currently ${annualFee}%/yr), and CGT strategy.`
+      + salaryNote;
+  }
+
+  // ── Tax badges ──
+  const totalDrag = cleanRetire>0 ? ((cleanRetire-projRetire)/cleanRetire*100).toFixed(1) : 0;
+  $('tb-total-tax').textContent  = `💸 CGT paid to retirement: ${fmt(taxAtRetire)}`;
+  $('tb-cgt-drag').textContent   = `📉 CGT drag vs. no-cost: ${cgtDrag}%`;
+  $('tb-fee-drag').textContent   = `💼 Fee drag (${annualFee}%/yr): ${fmt(feeAtRetire)} lost · ${feeDragPct}% of clean portfolio`;
+  $('tb-total-drag').textContent = `🔢 Combined drag (CGT + fees): ${totalDrag}%  (${fmt(cleanRetire)} → ${fmt(projRetire)})`;
+  $('tb-blended-now').textContent= `📊 Blended return today: ${blendNow.toFixed(2)}% nominal · ${realNow.toFixed(2)}% real`;
+  $('tb-blended-ret').textContent= `📊 Blended return at retirement: ${blendRet.toFixed(2)}% nominal · ${realRet.toFixed(2)}% real`;
+
+  // ── Accumulation chart ──
+  const chartYrs = Math.max(ytr+8, (yrsToFire||30)+5, 15);
+  const sliced   = sim.slice(0, Math.min(chartYrs+1, sim.length));
+  const ages     = sliced.map(s=>s.age);
+  drawMainChart(ages, sliced.map(s=>s.portfolio), clean.slice(0,sliced.length), fireNumber);
+  drawAllocChart(ages, sliced);
+
+  // ── Salary / contribution chart ──
+  const salContribs = sliced.map(s => s.monthlyContrib || getMonthlyContrib(s.year, params));
+  // Net salary drops to 0 at retirement — no income from employment after that
+  const salNetMo    = sliced.map(s =>
+    s.year > ytr ? 0 : getSalaryAtYear(s.year, params) * (1 - incomeTaxRate/100) / 12
+  );
+  drawSalaryChart(ages, salContribs, grossSalary > 0 ? salNetMo : null);
+
+  // ── Drawdown chart ──
+  // BUG FIX: pass actual cost basis at retirement rather than assuming 50%
+  const costBasisAtRetire = atRetire.costBasis;
+  const ddParams = { retireAge, lifeExpect, startPortfolio: projRetire, costBasisAtRetire, annualSpend, inflation, cgtRate, cgtAllowance, realisationRate, annualFee, ytr };
+  const ddSim = simulateDrawdown(ddParams);
+  drawDrawdownChart(ddSim, projRetire);
+
+  // ── Scenarios ──
+  [{id:'lean',swr:5,sf:.75},{id:'classic',swr:4,sf:1},{id:'fat',swr:3,sf:1.5}].forEach(sc=>{
+    const scFire = annualSpend*sc.sf/(sc.swr/100);
+    const scAge  = sim.find(s=>s.portfolio>=scFire)?.age??null;
+    $(`sc-${sc.id}-fire`).textContent = fmt(scFire);
+    $(`sc-${sc.id}-yrs`).textContent  = scAge ? `${scAge-currentAge}y · age ${scAge}` : '>65y';
+  });
+
+  updateGlidePreview();
+
+  // ── Monte Carlo ──
+  if (mcEnabled) {
+    runMonteCarlo(params, fireNumber, lifeExpect);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  EVENT WIRING
+// ══════════════════════════════════════════════════════
+[['swr','%',1],['inflation','%',1],['cgt','%',1],['realisationRate','%',0],
+ ['annualFee','%',2],['incomeTax','%',1],['salGrowth1','%',2],['salGrowth2','%',2],['marginalSavings','%',0],
+ ['ret-eq','%',1],['ret-bo','%',1],['ret-re','%',1],['ret-al','%',1],
+ ['mc-vol','%',1],['mc-runs','',0]
+].forEach(([id,u,d])=>{
+  $(id).addEventListener('input',()=>{
+    $(`${id}-val`).textContent=parseFloat($(id).value).toFixed(d)+u; compute();
+  });
+});
+
+['currentAge','retireAge','lifeExpect','currentSavings','monthlyContrib','annualSpend','cgtAllowance',
+ 'bd1-age','bd1-shock','bd1-years','bd2-age','bd2-shock','bd2-years','fireNumberInput',
+ 'grossSalary','monthlyExpenses','salPhase1End'].forEach(id=>{
+  const el = $(id); if(!el) return;
+  el.addEventListener('input',()=>{ if(['currentAge','retireAge'].includes(id)) updateGlidePreview(); compute(); });
+});
+
+ASSETS.forEach(a=>{ ['now','ret'].forEach(ph=>{ $(`al-${a}-${ph}`).addEventListener('input',()=>syncAlloc(ph)); }); });
+
+// ── INIT ──
+updateGlidePreview();
+compute(); // compute calls updateFormulaBox internally
+</script>
+</body>
+</html>
