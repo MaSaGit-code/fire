@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FIRE">
+<meta name="theme-color" content="#0d0f0e">
 <title>FIRE Calculator — Financial Independence</title>
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22FIRE+Calculator%22%2C%22short_name%22%3A%22FIRE%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0f0e%22%2C%22theme_color%22%3A%22%230d0f0e%22%7D">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='24' fill='%230d0f0e'/%3E%3Crect width='120' height='120' rx='24' fill='%23f4631e' opacity='.15'/%3E%3Ctext x='60' y='75' font-size='56' text-anchor='middle' font-family='system-ui'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -16,7 +22,8 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;}
   body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:600px;background:radial-gradient(ellipse at center,rgba(244,99,30,0.07) 0%,transparent 70%);pointer-events:none;z-index:0;}
-  .container{max-width:1200px;margin:0 auto;padding:0 24px 80px;position:relative;z-index:1;}
+  .container{max-width:1200px;margin:0 auto;padding:0 24px calc(80px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));padding-right:calc(24px + env(safe-area-inset-right));position:relative;z-index:1;}
+  header{padding-top:calc(44px + env(safe-area-inset-top));}
   header{padding:44px 0 30px;display:flex;flex-direction:column;gap:6px;}
   .logo-row{display:flex;align-items:center;gap:14px;}
   .flame-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--ember);border-radius:10px;font-size:20px;box-shadow:0 0 24px rgba(244,99,30,0.4);animation:pulse-glow 3s ease-in-out infinite;}
@@ -1796,9 +1803,135 @@ function compute() {
 
 ASSETS.forEach(a=>{ ['now','ret'].forEach(ph=>{ $(`al-${a}-${ph}`).addEventListener('input',()=>syncAlloc(ph)); }); });
 
+// ══════════════════════════════════════════════════════
+//  PERSISTENCE — localStorage save / restore
+// ══════════════════════════════════════════════════════
+const LS_KEY = 'fire-calc-v1';
+
+// Slider display IDs that need their label refreshed after value restore
+const SLIDER_DISPLAY = {
+  'swr':['swr-val','%',1],'inflation':['inflation-val','%',1],
+  'cgt':['cgt-val','%',1],'realisationRate':['realisationRate-val','%',0],
+  'annualFee':['annualFee-val','%',2],'incomeTax':['incomeTax-val','%',1],
+  'salGrowth1':['salGrowth1-val','%',2],'salGrowth2':['salGrowth2-val','%',2],
+  'marginalSavings':['marginalSavings-val','%',0],
+  'ret-eq':['ret-eq-val','%',1],'ret-bo':['ret-bo-val','%',1],
+  'ret-re':['ret-re-val','%',1],'ret-al':['ret-al-val','%',1],
+  'mc-vol':['mc-vol-val','%',1],'mc-runs':['mc-runs-val','',0]
+};
+
+const ALLOC_DISPLAY = {
+  'al-eq-now':'al-eq-now-v','al-bo-now':'al-bo-now-v',
+  'al-re-now':'al-re-now-v','al-al-now':'al-al-now-v',
+  'al-eq-ret':'al-eq-ret-v','al-bo-ret':'al-bo-ret-v',
+  'al-re-ret':'al-re-ret-v','al-al-ret':'al-al-ret-v'
+};
+
+function saveState() {
+  const data = {};
+  // Number/range inputs
+  ['currentAge','retireAge','lifeExpect','currentSavings','monthlyContrib',
+   'annualSpend','fireNumberInput','swr','inflation',
+   'grossSalary','monthlyExpenses','incomeTax',
+   'salGrowth1','salGrowth2','salPhase1End','marginalSavings',
+   'ret-eq','ret-bo','ret-re','ret-al',
+   'al-eq-now','al-bo-now','al-re-now','al-al-now',
+   'al-eq-ret','al-bo-ret','al-re-ret','al-al-ret',
+   'cgt','cgtAllowance','realisationRate','annualFee',
+   'bd1-age','bd1-shock','bd1-years','bd2-age','bd2-shock','bd2-years',
+   'mc-vol','mc-runs'
+  ].forEach(id => { const el = $(id); if (el) data[id] = el.value; });
+  // Checkboxes
+  ['bd1-on','bd2-on'].forEach(id => { const el = $(id); if (el) data[id] = el.checked; });
+  // App state
+  data._inputMode = inputMode;
+  data._mcEnabled = mcEnabled;
+  // Detect active FIRE strategy mode from toggle buttons
+  const activeMode = document.querySelector('[data-mode].active');
+  data._fireMode = activeMode ? activeMode.dataset.mode : 'classic';
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function loadState() {
+  let data;
+  try { data = JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) {}
+  if (!data) return false;
+
+  // Restore numeric/range inputs
+  ['currentAge','retireAge','lifeExpect','currentSavings','monthlyContrib',
+   'annualSpend','fireNumberInput','swr','inflation',
+   'grossSalary','monthlyExpenses','incomeTax',
+   'salGrowth1','salGrowth2','salPhase1End','marginalSavings',
+   'ret-eq','ret-bo','ret-re','ret-al',
+   'al-eq-now','al-bo-now','al-re-now','al-al-now',
+   'al-eq-ret','al-bo-ret','al-re-ret','al-al-ret',
+   'cgt','cgtAllowance','realisationRate','annualFee',
+   'bd1-age','bd1-shock','bd1-years','bd2-age','bd2-shock','bd2-years',
+   'mc-vol','mc-runs'
+  ].forEach(id => {
+    if (data[id] !== undefined) {
+      const el = $(id); if (el) el.value = data[id];
+    }
+  });
+
+  // Refresh slider display labels
+  Object.entries(SLIDER_DISPLAY).forEach(([id,[dispId,unit,dec]]) => {
+    const el = $(id), disp = $(dispId);
+    if (el && disp) disp.textContent = parseFloat(el.value).toFixed(dec) + unit;
+  });
+
+  // Refresh allocation display values
+  Object.entries(ALLOC_DISPLAY).forEach(([inputId, dispId]) => {
+    const el = $(inputId), disp = $(dispId);
+    if (el && disp) disp.textContent = el.value + '%';
+  });
+
+  // Checkboxes
+  ['bd1-on','bd2-on'].forEach(id => {
+    if (data[id] !== undefined) {
+      const el = $(id); if (el) {
+        el.checked = data[id];
+        // Toggle field opacity
+        const fields = $(`${id.replace('-on','-fields')}`);
+        if (fields) fields.classList.toggle('disabled', !data[id]);
+      }
+    }
+  });
+
+  // Restore app state — without triggering compute() yet
+  if (data._inputMode) {
+    inputMode = data._inputMode;
+    $('mode-spend-btn').classList.toggle('active', inputMode==='spend');
+    $('mode-fire-btn').classList.toggle('active', inputMode==='fire');
+    $('spend-field').style.display    = inputMode==='spend' ? '' : 'none';
+    $('firenumber-field').style.display = inputMode==='fire' ? '' : 'none';
+  }
+  if (data._fireMode) {
+    document.querySelectorAll('[data-mode]').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === data._fireMode)
+    );
+  }
+  if (data._mcEnabled === false) {
+    mcEnabled = false;
+    $('mc-show-btn').classList.remove('active');
+    $('mc-hide-btn').classList.add('active');
+    $('mc-chart-wrap').style.display = 'none';
+  }
+
+  return true;
+}
+
+// Hook: save on every compute so state is always current
+const _origCompute = compute;
+function compute() {
+  _origCompute();
+  saveState();
+}
+
 // ── INIT ──
+loadState();      // restore saved state first
 updateGlidePreview();
-compute(); // compute calls updateFormulaBox internally
+compute();        // compute calls updateFormulaBox internally
 </script>
 </body>
 </html>
