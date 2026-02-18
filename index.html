@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-title" content="FIRE">
 <meta name="theme-color" content="#0d0f0e">
 <title>FIRE Calculator — Financial Independence</title>
-<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22FIRE+Calculator%22%2C%22short_name%22%3A%22FIRE%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0f0e%22%2C%22theme_color%22%3A%22%230d0f0e%22%7D">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='24' fill='%230d0f0e'/%3E%3Crect width='120' height='120' rx='24' fill='%23f4631e' opacity='.15'/%3E%3Ctext x='60' y='75' font-size='56' text-anchor='middle' font-family='system-ui'%3E%F0%9F%94%A5%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -1779,6 +1778,9 @@ function compute() {
   if (mcEnabled) {
     runMonteCarlo(params, fireNumber, lifeExpect);
   }
+
+  // ── Persist state after every compute ──
+  saveState();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1919,13 +1921,6 @@ function loadState() {
   }
 
   return true;
-}
-
-// Hook: save on every compute so state is always current
-const _origCompute = compute;
-function compute() {
-  _origCompute();
-  saveState();
 }
 
 // ── INIT ──
